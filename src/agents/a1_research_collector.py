@@ -16,6 +16,18 @@ FALLBACK_A1 = (
 REQUIRED_FIELDS = ["URL", "Type", "Recency", "Core claim", "Credibility signal"]
 
 
+def _count_numbered_entries(text: str) -> int:
+    """Count numbered source entries, handling both '1.' and '**1.**' formats."""
+    count = 0
+    for line in text.split("\n"):
+        stripped = line.strip()
+        # Plain: "1. text" or "1) text"
+        # Bold markdown: "**1.**" or "**1)**"
+        if re.match(r"^\d+[\.\)]", stripped) or re.match(r"^\*{1,2}\d+[\.\)]\*{0,2}", stripped):
+            count += 1
+    return count
+
+
 class A1ResearchCollector(BaseAgent):
     id: AgentId = "A1"
     timeout_ms: int = 90_000
@@ -33,19 +45,25 @@ class A1ResearchCollector(BaseAgent):
         return (
             f"Research the following topic and compile a numbered list of sources.\n\n"
             f"Topic: {state.topic}{sources_str}\n\n"
-            f"For each source provide: URL, Type, Recency, Core claim, Credibility signal.\n"
-            f"Format as a numbered list."
+            f"For each source, provide the following five fields on separate lines:\n"
+            f"  URL: <url>\n"
+            f"  Type: <Academic|Industry|Analyst|News|Case study>\n"
+            f"  Recency: <year>\n"
+            f"  Core claim: <one sentence>\n"
+            f"  Credibility signal: <why credible>\n\n"
+            f"Format each entry as a numbered item (1., 2., 3., ...). "
+            f"Aim for at least 6 sources."
         )
 
     def validate_output(self, output: str, state: PipelineState) -> None:
-        lines = output.split("\n")
-        entries = [line for line in lines if re.match(r"^\d+\.", line.strip())]
-        if len(entries) < 3:
-            raise AgentValidationError("A1", f"Only {len(entries)} source entries found (need ≥ 3)")
+        entry_count = _count_numbered_entries(output)
+        if entry_count < 3:
+            raise AgentValidationError("A1", f"Only {entry_count} source entries found (need ≥ 3)")
+        output_lower = output.lower()
         for field in REQUIRED_FIELDS:
-            if field not in output:
+            if field.lower() not in output_lower:
                 raise AgentValidationError("A1", f"Missing required field: {field}")
-        if len(entries) < 6:
+        if entry_count < 6:
             state.agents["A1"].warnings.append(PipelineWarning.CONTEXT_NEAR_LIMIT)
 
     def _no_sources_detected(self, output: str) -> bool:

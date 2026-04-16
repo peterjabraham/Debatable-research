@@ -16,18 +16,27 @@ def _word_count(text: str) -> int:
 
 
 def _extract_source_names(a1_output: str) -> list[str]:
-    """Extract URL host+path from numbered A1 source lines for citation matching."""
-    names = []
+    """Extract source identifiers from A1 output for citation matching.
+
+    Prefers URLs (handles block format where URL is on its own line).
+    Falls back to text content from numbered lines when no URLs are present.
+    """
+    # First pass: collect all URLs from any line
+    url_names = []
     for line in a1_output.split("\n"):
-        m = re.match(r"^\d+\.\s*(.+)", line.strip())
+        url_match = re.search(r"https?://([^\s\)>]+)", line)
+        if url_match:
+            url_names.append(url_match.group(1).rstrip("/.,").strip())
+    if url_names:
+        return url_names
+    # Fallback: text content from numbered source lines
+    text_names = []
+    for line in a1_output.split("\n"):
+        m = re.match(r"^\d+\.\s+(.+)", line.strip())
         if m:
             content = m.group(1)
-            url_match = re.search(r"https?://([^\s]+)", content)
-            if url_match:
-                names.append(url_match.group(1)[:40].strip())
-            else:
-                names.append(content[:30].strip())
-    return names
+            text_names.append(content[:40].strip())
+    return text_names
 
 
 def _count_citations(post: str, source_names: list[str]) -> tuple[int, list[str]]:

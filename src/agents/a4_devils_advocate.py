@@ -13,38 +13,57 @@ MAX_POSITIONS = 3
 
 def _extract_contested_positions(a3_output: str) -> list[str]:
     """Extract contested positions from A3 output."""
-    # Find the contested zone section
     match = re.search(
         r"## Contested zone\s*(.*?)(?=##|$)", a3_output, re.DOTALL | re.IGNORECASE
     )
     if not match:
         return []
     section = match.group(1).strip()
-    # Look for numbered items or Position: labels
-    numbered = re.findall(r"^\d+\.\s*(.+)", section, re.MULTILINE)
+    # Numbered items: "1. text" or "1." on its own line followed by bold text
+    numbered = re.findall(r"^\d+\.\s*\*{0,2}(.+?)\*{0,2}\s*$", section, re.MULTILINE)
     if numbered:
-        return numbered
+        return [p.strip() for p in numbered if p.strip()]
+    # Table rows: extract first column
+    table_rows = []
+    for line in section.split("\n"):
+        if line.strip().startswith("|") and not re.match(r"^\s*\|[-: |]+\|\s*$", line):
+            cols = [c.strip().strip("*") for c in line.split("|") if c.strip()]
+            if cols and "Position" not in cols[0]:
+                table_rows.append(cols[0])
+    if table_rows:
+        return table_rows
+    # Position: labels
     labeled = re.findall(r"Position:\s*(.+)", section)
     return labeled
 
 
 def _extract_source_names(a1_output: str) -> list[str]:
-    """Extract URL host+path from numbered A1 source lines for citation matching."""
-    names = []
+    """Extract source identifiers from A1 output for citation matching.
+
+    Returns short identifiers (domain names from URLs, or text prefixes)
+    that are likely to appear in natural-language citation text.
+    """
+    # Collect domain names from any URL in the output
+    domain_names = []
     for line in a1_output.split("\n"):
-        m = re.match(r"^\d+\.\s*(.+)", line.strip())
+        url_match = re.search(r"https?://(?:www\.)?([^/\s\)>]+)", line)
+        if url_match:
+            domain_names.append(url_match.group(1).lower().strip())
+    if domain_names:
+        return domain_names
+    # Fallback: text content from numbered source lines
+    text_names = []
+    for line in a1_output.split("\n"):
+        m = re.match(r"^\d+\.\s+(.+)", line.strip())
         if m:
             content = m.group(1)
-            url_match = re.search(r"https?://([^\s]+)", content)
-            if url_match:
-                names.append(url_match.group(1)[:40].strip())
-            else:
-                names.append(content[:80].strip())
-    return names
+            text_names.append(content[:40].strip())
+    return text_names
 
 
 def _count_blocks(output: str) -> int:
-    return len(re.findall(r"^Position:", output, re.MULTILINE))
+    """Count steelman blocks — matches 'Position:' with optional bold markdown."""
+    return len(re.findall(r"^\*{0,2}Position:\*{0,2}", output, re.MULTILINE))
 
 
 class A4DevilsAdvocate(BaseAgent):
@@ -86,11 +105,22 @@ class A4DevilsAdvocate(BaseAgent):
         for name in source_names:
             # We just check the whole output contains at least some source references
             break
-        # Split output into blocks and check each
-        blocks = re.split(r"(?=^Position:)", output, flags=re.MULTILINE)
-        blocks = [b.strip() for b in blocks if b.strip()]
+        # Split output into blocks — handles plain and bold '**Position:**'
+        blocks = re.split(r"(?=^\*{0,2}Position:\*{0,2})", output, flags=re.MULTILINE)
+        # Keep only blocks that actually contain a Position: label (skip preambles/headers)
+        blocks = [
+            b.strip() for b in blocks
+            if b.strip() and re.search(r"\*{0,2}Position:\*{0,2}", b)
+        ]
         for block in blocks:
-            has_source = any(name[:20] in block for name in source_names if name)
+            block_lower = block.lower()
+            # Check domain names or text names appear in block
+            has_source = any(
+                name[:20].lower() in block_lower for name in source_names if name
+            )
+            # Also accept "(Source N)" style citations Claude commonly uses
+            if not has_source:
+                has_source = bool(re.search(r"\(Source \d+\)", block))
             if not has_source:
                 raise AgentValidationError(
                     "A4",

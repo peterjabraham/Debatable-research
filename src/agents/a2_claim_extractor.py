@@ -7,7 +7,13 @@ from src.utils.errors import AgentValidationError, PipelineWarning
 
 
 def _count_source_entries(text: str) -> int:
-    return sum(1 for line in text.split("\n") if re.match(r"^\d+\.", line.strip()))
+    """Count numbered source entries, handling both '1.' and '**1.**' formats."""
+    count = 0
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if re.match(r"^\d+[\.\)]", stripped) or re.match(r"^\*{1,2}\d+[\.\)]\*{0,2}", stripped):
+            count += 1
+    return count
 
 
 def _count_claim_blocks(text: str) -> int:

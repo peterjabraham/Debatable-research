@@ -21,11 +21,39 @@ def _extract_section(output: str, heading: str) -> str:
 
 
 def _count_distinct_positions(section: str) -> int:
-    numbered = re.findall(r"^\d+\.", section, re.MULTILINE)
+    """Count distinct positions in a section.
+
+    Handles multiple formats Claude may use:
+    - Numbered: '1. Position text' or '**1.**' (bold markdown)
+    - Bullets: '- Position text' or '* Position text'
+    - Markdown table rows (| col | col |) — counts data rows, not header/separator
+    - Labeled: 'Position: ...'
+    """
+    # Numbered items (plain or bold markdown)
+    numbered = re.findall(r"^\*{0,2}\d+[\.\)]\*{0,2}", section, re.MULTILINE)
     if numbered:
         return len(numbered)
+    # Markdown table data rows: lines starting with '|' that are not separators
+    table_rows = [
+        line for line in section.split("\n")
+        if line.strip().startswith("|")
+        and not re.match(r"^\s*\|[-: |]+\|\s*$", line)  # skip separator rows
+        and not re.search(r"\bPosition\b", line)         # skip header row
+    ]
+    if table_rows:
+        return len(table_rows)
+    # Explicit position labels
     labeled = re.findall(r"Position:", section)
-    return len(labeled)
+    if labeled:
+        return len(labeled)
+    # Bullet points as fallback
+    bullets = re.findall(r"^[-*•]\s+\S", section, re.MULTILINE)
+    if bullets:
+        return len(bullets)
+    # Final fallback: substantive prose with no explicit structure
+    # If the section has meaningful content, count paragraphs (separated by blank lines)
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", section) if len(p.strip()) > 40]
+    return len(paragraphs)
 
 
 def _has_conflation(output: str) -> bool:
@@ -56,6 +84,10 @@ class A3LandscapeMapper(BaseAgent):
             f"Output must contain exactly these five sections:\n"
             f"## Consensus zone\n## Contested zone\n## Outlier positions\n"
             f"## Evidence weight summary\n## The unresolved question\n\n"
+            f"In the Contested zone, number each distinct position as a list:\n"
+            f"1. Position one description\n"
+            f"2. Position two description\n"
+            f"(and so on)\n\n"
             f"Claims:\n{a2_output}"
         )
 

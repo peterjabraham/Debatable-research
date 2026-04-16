@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
-load_dotenv()
+load_dotenv(override=True)
 
 app = typer.Typer(help="Blog Agent Pipeline — research, debate, and write with Claude.")
 console = Console()
