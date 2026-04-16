@@ -1,0 +1,17 @@
+## Consensus zone
+- Email marketing remains relevant and delivers measurable ROI for B2B companies
+- Personalisation improves engagement metrics across most industry segments
+
+## Contested zone
+1. AI personalisation is overhyped relative to implementation costs and complexity
+2. Privacy regulations fundamentally change email viability and list management
+
+## Outlier positions
+- Email is obsolete for Gen Z buyers who prefer social and messaging channels
+- Email will be entirely AI-generated within 5 years, removing human creativity
+
+## Evidence weight summary
+The weight of evidence supports continued email relevance with growing personalisation importance. ROI data is strong but implementation complexity is underreported.
+
+## The unresolved question
+Can AI personalisation overcome privacy friction and deliver sustainable competitive advantage for mid-market companies?

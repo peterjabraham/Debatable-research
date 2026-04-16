@@ -1,0 +1,6 @@
+1. URL: https://example.com/study1 Type: Academic Recency: 2024 Core claim: Email marketing delivers 36x ROI for B2B companies with proper segmentation strategies Credibility signal: Peer-reviewed journal, n=500 companies
+2. URL: https://example.com/report2 Type: Analyst Recency: 2024 Core claim: AI personalisation tools increase email open rates by 26% on average across industries Credibility signal: Major analyst firm, Fortune 500 sample
+3. URL: https://example.com/blog3 Type: Industry Recency: 2023 Core claim: Privacy regulations including GDPR have reduced effective email list sizes by 15-30% since 2018 Credibility signal: Industry survey, 2000+ respondents
+4. URL: https://example.com/case4 Type: Case study Recency: 2023 Core claim: Personalised email sequences outperform generic blasts by 3x in B2B SaaS conversion rates Credibility signal: Vendor-sponsored but large sample
+5. URL: https://example.com/paper5 Type: Academic Recency: 2022 Core claim: Email remains the preferred channel for business communication among buyers aged 35-54 Credibility signal: University research, longitudinal study
+6. URL: https://example.com/news6 Type: News Recency: 2024 Core claim: Major email service providers are investing heavily in AI-driven content optimisation tools Credibility signal: Trade publication, multiple sources cited

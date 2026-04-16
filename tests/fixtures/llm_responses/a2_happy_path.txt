@@ -1,0 +1,29 @@
+Core claim: Email marketing consistently delivers a 36x return on investment for B2B companies that implement proper audience segmentation and targeting strategies
+Key evidence: Peer-reviewed study of 500 companies showed median ROI of 36x when segmentation was applied versus 8x without
+Caveats: Study focused on established B2B companies; startups and SMBs may see different returns depending on list quality
+Implicit assumption: Companies have the infrastructure and data quality to implement effective segmentation at scale
+
+Core claim: Artificial intelligence personalisation tools demonstrably increase email open rates by an average of 26 percent across a broad range of industries and company sizes
+Key evidence: Fortune 500 sample data from major analyst firm showing consistent open rate lift when AI-driven subject line and send-time optimisation was deployed
+Caveats: Large enterprise bias is likely; smaller companies may lack the data volume required for AI models to perform accurately
+Implicit assumption: AI tools are correctly configured and integrated with existing CRM and marketing automation platforms
+
+Core claim: Privacy regulations including GDPR and similar frameworks have meaningfully reduced effective email list sizes by between 15 and 30 percent since their introduction in 2018
+Key evidence: Industry survey of 2000+ marketing professionals documenting list size decline and increased unsubscribe rates following regulatory enforcement
+Caveats: Impact varies significantly by geography, industry vertical, and how aggressively companies pursued compliance
+Implicit assumption: Companies measured and reported list shrinkage accurately and did not replace lost contacts through other acquisition methods
+
+Core claim: Personalised email sequences outperform generic batch-and-blast campaigns by a factor of three in B2B SaaS conversion rates when measured against consistent benchmarks
+Key evidence: Large-scale case study data showing conversion rate differential between personalised drip sequences and standard broadcast emails across multiple SaaS verticals
+Caveats: Research was vendor-sponsored, which introduces potential selection bias toward outcomes that favour personalisation tools
+Implicit assumption: The comparison baseline of generic email campaigns was representative and not deliberately chosen to make personalisation look stronger
+
+Core claim: Email continues to be the most strongly preferred communication channel for business purchasing decisions among professional buyers in the 35 to 54 age demographic
+Key evidence: Longitudinal university study tracking channel preference over multiple years across B2B buyer cohorts in North America and Western Europe
+Caveats: Younger buyer demographics show different preferences, and the study predates recent growth in workplace messaging platforms like Slack and Teams
+Implicit assumption: Stated channel preferences in surveys translate directly into actual purchasing and engagement behaviour in real commercial contexts
+
+Core claim: Leading email service providers are committing substantial capital investment to AI-driven content optimisation features as a core product development priority for the near term
+Key evidence: Trade publication reporting citing investment announcements, product roadmaps, and executive statements from multiple major ESP platforms
+Caveats: Investment announcements do not guarantee product delivery timelines or actual capability improvements for end users
+Implicit assumption: Vendor investment in AI tooling will translate into measurable performance improvements accessible to their customer base within a reasonable timeframe

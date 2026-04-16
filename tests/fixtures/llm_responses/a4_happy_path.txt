@@ -1,0 +1,9 @@
+Position: AI personalisation is overhyped relative to implementation costs and complexity
+Case: 1. Implementation costs exceed reported ROI for SMBs. URL: https://example.com/study1 Type: Academic shows marginal gains at scale. 2. Technical debt from AI integration is substantial and underreported. 3. Vendor lock-in risk is rarely discussed in promotional materials.
+Hardest objection: Large enterprises do report strong personalisation ROI.
+Response: Results are skewed toward enterprises with dedicated marketing operations teams.
+
+Position: Privacy regulations fundamentally change email viability and list management
+Case: 1. GDPR compliance reduces effective list sizes. URL: https://example.com/report2 Type: Analyst documents 15-30% reduction. 2. Consent fatigue is measurable in declining opt-in rates. 3. Cross-border data regulations add operational complexity.
+Hardest objection: Email still outperforms other channels on owned-audience metrics.
+Response: Regulatory friction creates a moat for established senders with clean lists.

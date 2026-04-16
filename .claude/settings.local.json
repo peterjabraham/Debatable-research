@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(pyenv versions:*)",
+      "Bash(pytest tests/unit/pipeline/test_state.py -v)",
+      "Bash(pytest tests/unit/pipeline/test_watchdog.py -v)",
+      "Bash(pytest tests/unit/pipeline/test_checkpoints.py -v)",
+      "Bash(pytest tests/unit/llm/test_client.py -v)",
+      "Bash(python -m pytest tests/unit/agents/test_a1.py tests/unit/agents/test_a2.py tests/unit/agents/test_a3.py -v)",
+      "Bash(python3 -c ':*)",
+      "Bash(python -m pytest tests/unit/agents/test_a4.py tests/unit/agents/test_a5.py tests/unit/agents/test_a6.py -v)",
+      "Bash(pytest tests/unit/agents/ -v --tb=short)",
+      "Bash(pytest --co -q)",
+      "Bash(pytest tests/ --tb=short -q)",
+      "Bash(pytest tests/integration/test_pipeline.py -v --tb=short)",
+      "Bash(pytest tests/integration/test_chokepoints.py -v --tb=short)",
+      "Bash(pytest tests/integration/test_chokepoints.py::test_cp03_shallow_claims_warning_in_a2_record tests/integration/test_chokepoints.py::test_cp03_shallow_claims_propagates_to_a5_prompt -v --tb=long)",
+      "Bash(python main.py dry-run --topic \"x\" --audience \"y\" --tone \"z\")",
+      "Bash(pytest --tb=short -q)",
+      "Bash(ruff check:*)",
+      "Bash(mypy src/ --ignore-missing-imports)",
+      "Bash(grep -v \"^Found\\\\|^$\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

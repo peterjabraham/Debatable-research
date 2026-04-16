@@ -1,0 +1,9 @@
+Core claim: Email has good ROI.
+Key evidence: Studies show positive results.
+Caveats: Sample sizes vary.
+Implicit assumption: Companies use email correctly.
+
+Core claim: AI personalisation increases email open rates by 26% in most industry contexts
+Key evidence: Analyst firm data from Fortune 500 companies
+Caveats: Large enterprise bias possible
+Implicit assumption: AI tools are correctly implemented
