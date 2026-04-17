@@ -124,10 +124,10 @@ class A4DevilsAdvocate(BaseAgent):
         return (
             f"For each contested position below, write a steelman block with:\n"
             f"Position: / Case: (3 points) / Hardest objection: / Response:\n\n"
-            f"Each block MUST cite at least one source by name or domain. "
-            f"Valid citation identifiers include: {source_ids}\n"
-            f"Use the identifier directly in your text "
-            f'(e.g. "according to gartner.com" or "Gartner research shows").\n\n'
+            f"Each block MUST cite at least one source. Acceptable citation formats:\n"
+            f"- Bracket references matching the source list: [1], [2], [3]\n"
+            f"- Source name or domain: {source_ids}\n"
+            f"- Attribution: \"according to <source>\"\n\n"
             f"Contested positions:\n{positions_str}\n\n"
             f"Source list:\n{a1_output}"
         )
@@ -149,7 +149,7 @@ class A4DevilsAdvocate(BaseAgent):
             b.strip() for b in blocks
             if b.strip() and re.search(r"\*{0,2}Position:\*{0,2}", b)
         ]
-        for block in blocks:
+        for idx, block in enumerate(blocks):
             block_lower = block.lower()
             has_source = any(
                 name[:20].lower() in block_lower
@@ -158,6 +158,9 @@ class A4DevilsAdvocate(BaseAgent):
             )
             if not has_source:
                 has_source = bool(re.search(r"\(Source \d+\)", block))
+            # Perplexity-style bracket citations: [1], [2], [1, 2], [1][2]
+            if not has_source:
+                has_source = bool(re.search(r"\[\d+\]", block))
             if not has_source:
                 has_source = bool(re.search(
                     r"(according to|cited by|per|as reported by|research from|"
@@ -167,6 +170,10 @@ class A4DevilsAdvocate(BaseAgent):
             if not has_source:
                 has_source = bool(re.search(r"https?://\S+", block))
             if not has_source:
+                logger.warning(
+                    "A4 block %d failed citation check. source_names=%s block_preview=%.200s",
+                    idx, source_names[:5], block[:200],
+                )
                 raise AgentValidationError(
                     "A4",
                     "A steelman block lacks a source citation from the source list",
