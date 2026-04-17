@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from src.agents.a6_blog_writer import A6BlogWriter, _replace_em_dashes
+from src.agents.a6_blog_writer import A6BlogWriter, _replace_em_dashes, _strip_preamble
 from src.pipeline.state import AgentStatus, PipelineState, TokenUsage
 from src.utils.errors import AgentValidationError
 
@@ -262,9 +262,8 @@ async def test_cp10a_expand_reprompt_triggered_when_post_too_short(mock_llm, sta
     assert mock_llm.call.call_count == 3
 
 
-async def test_cp10a_expand_reprompt_contains_expand_not_regenerate(mock_llm, state):
-    """Re-prompt must say 'expand' and must not instruct full regeneration
-    (it may say 'do not regenerate' but must not say 'regenerate' as a primary command)."""
+async def test_cp10a_expand_reprompt_demands_complete_post(mock_llm, state):
+    """Re-prompt must say 'expand' and demand the complete post output."""
     short_post = _make_short_post()
     mock_llm.call = AsyncMock(
         side_effect=[
@@ -277,6 +276,7 @@ async def test_cp10a_expand_reprompt_contains_expand_not_regenerate(mock_llm, st
     await agent.run(state)
     reprompt_text = mock_llm.call.call_args_list[1][0][1]
     assert "expand" in reprompt_text.lower()
+    assert "complete" in reprompt_text.lower()
     assert short_post in reprompt_text
 
 
@@ -338,14 +338,11 @@ async def test_cp11_concession_reprompt_triggered_when_concession_missing(mock_l
     post_no_concession = A6_HAPPY_OUTPUT.replace("concession:", "acknowledgement:")
     assert "concession" not in post_no_concession.lower()
 
-    concession_addition = "\n\nconcession: Privacy regulations add real friction to list building."
-    combined = post_no_concession + "\n\n" + concession_addition
-
     mock_llm.call = AsyncMock(
         side_effect=[
             (post_no_concession, MOCK_TOKEN_USAGE),
-            (concession_addition, MOCK_TOKEN_USAGE),
-            (combined, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
         ]
     )
     agent = A6BlogWriter(llm_client=mock_llm)
@@ -353,17 +350,15 @@ async def test_cp11_concession_reprompt_triggered_when_concession_missing(mock_l
     assert mock_llm.call.call_count == 3
 
 
-async def test_cp11_concession_reprompt_appends_before_humanise(mock_llm, state):
-    """Concession is appended, then humanise runs as a separate step."""
+async def test_cp11_concession_reprompt_returns_complete_post(mock_llm, state):
+    """Concession reprompt returns complete post, then humanise runs."""
     post_no_concession = A6_HAPPY_OUTPUT.replace("concession:", "acknowledgement:")
-    concession_addition = "concession: Privacy regulations add friction but improve list quality."
-    combined = post_no_concession + "\n\n" + concession_addition
 
     mock_llm.call = AsyncMock(
         side_effect=[
             (post_no_concession, MOCK_TOKEN_USAGE),
-            (concession_addition, MOCK_TOKEN_USAGE),
-            (combined, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
         ]
     )
     agent = A6BlogWriter(llm_client=mock_llm)
@@ -371,23 +366,21 @@ async def test_cp11_concession_reprompt_appends_before_humanise(mock_llm, state)
     assert "concession" in result.lower()
 
 
-async def test_cp11_concession_reprompt_instructs_append(mock_llm, state):
-    """Re-prompt text must instruct append after the current post, not full regeneration."""
+async def test_cp11_concession_reprompt_demands_complete_post(mock_llm, state):
+    """Re-prompt must demand the complete post output."""
     post_no_concession = A6_HAPPY_OUTPUT.replace("concession:", "acknowledgement:")
-    concession_addition = "concession: Regulations add friction but improve list quality."
-    combined = post_no_concession + "\n\n" + concession_addition
 
     mock_llm.call = AsyncMock(
         side_effect=[
             (post_no_concession, MOCK_TOKEN_USAGE),
-            (concession_addition, MOCK_TOKEN_USAGE),
-            (combined, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
+            (A6_HAPPY_OUTPUT, MOCK_TOKEN_USAGE),
         ]
     )
     agent = A6BlogWriter(llm_client=mock_llm)
     await agent.run(state)
     reprompt_text = mock_llm.call.call_args_list[1][0][1]
-    assert "append" in reprompt_text.lower()
+    assert "complete" in reprompt_text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -502,6 +495,28 @@ async def test_run_always_calls_humanise(agent, state):
 async def test_run_removes_em_dashes(agent, state):
     result = await agent.run(state)
     assert "—" not in result
+
+
+def test_strip_preamble_removes_meta_commentary():
+    dirty = (
+        "Here is the revised post with inline source references woven into the text.\n\n"
+        "# The Real Post\n\nActual content here."
+    )
+    assert _strip_preamble(dirty) == "# The Real Post\n\nActual content here."
+
+
+def test_strip_preamble_preserves_clean_post():
+    clean = "# The Real Post\n\nActual content here."
+    assert _strip_preamble(clean) == clean
+
+
+def test_strip_preamble_handles_multiple_preamble_lines():
+    dirty = (
+        "I've revised the post to include the missing sources.\n"
+        "Below is the complete updated version.\n\n"
+        "# Post Title\n\nContent."
+    )
+    assert _strip_preamble(dirty) == "# Post Title\n\nContent."
 
 
 async def test_humanise_guard_falls_back_on_failure(mock_llm, state):

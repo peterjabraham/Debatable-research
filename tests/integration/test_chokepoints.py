@@ -565,17 +565,14 @@ async def test_cp10b_cut_reprompt_checked_after(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# CP-11: A6 missing concession → append re-prompt
+# CP-11: A6 missing concession → complete-post re-prompt
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_cp11_a6_concession_reprompt_appends(tmp_path, monkeypatch):
+async def test_cp11_a6_concession_reprompt_returns_complete_post(tmp_path, monkeypatch):
     monkeypatch.setattr("src.pipeline.checkpoints.CHECKPOINT_DIR", tmp_path)
     _patch_output(tmp_path, monkeypatch)
 
-    concession_addition = "Concession: Admittedly, privacy regulations create real friction."
-
-    combined = _fx("a6_no_concession") + "\n\nConcession: Admittedly, privacy regulations create real friction."
     llm = _llm(
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
@@ -583,8 +580,8 @@ async def test_cp11_a6_concession_reprompt_appends(tmp_path, monkeypatch):
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_no_concession"),   # no "concession" keyword
-        concession_addition,       # concession-only re-prompt result
-        combined,                  # humanise pass
+        _fx("a6_happy_path"),      # reprompt returns complete post with concession
+        _fx("a6_happy_path"),      # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -593,13 +590,9 @@ async def test_cp11_a6_concession_reprompt_appends(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cp11_concession_reprompt_does_not_regenerate(tmp_path, monkeypatch):
+async def test_cp11_concession_reprompt_demands_complete_output(tmp_path, monkeypatch):
     monkeypatch.setattr("src.pipeline.checkpoints.CHECKPOINT_DIR", tmp_path)
     _patch_output(tmp_path, monkeypatch)
-
-    original_no_concession = _fx("a6_no_concession")
-    concession_addition = "Concession: Privacy regulations are a genuine headwind."
-    combined = original_no_concession + "\n\n" + concession_addition
 
     llm = _llm(
         _fx("a1_happy_path"),
@@ -607,13 +600,15 @@ async def test_cp11_concession_reprompt_does_not_regenerate(tmp_path, monkeypatc
         _fx("a3_happy_path"),
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
-        original_no_concession,
-        concession_addition,
-        combined,                  # humanise pass
+        _fx("a6_no_concession"),
+        _fx("a6_happy_path"),      # reprompt returns complete post
+        _fx("a6_happy_path"),      # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
-    assert original_no_concession[:50] in result.agents["A6"].output
+    # The concession reprompt is the 7th LLM call (index 6)
+    concession_reprompt = llm.call.call_args_list[6][0][1]
+    assert "complete" in concession_reprompt.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -660,7 +655,7 @@ async def test_cp12_citation_reprompt_contains_missing_source_names(tmp_path, mo
     # The citation re-prompt is the 7th LLM call (index 6); final input is
     # the humanise prompt, so check call args directly.
     citation_reprompt = llm.call.call_args_list[6][0][1]
-    assert "weave in" in citation_reprompt.lower()
+    assert "weave" in citation_reprompt.lower()
 
 
 # ---------------------------------------------------------------------------

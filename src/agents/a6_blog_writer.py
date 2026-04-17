@@ -33,6 +33,30 @@ def _replace_em_dashes(text: str) -> str:
     return EM_DASH.sub(", ", text)
 
 
+PREAMBLE_RE = re.compile(
+    r"^(?:Here (?:is|are) (?:the|my|a) (?:revised|updated|rewritten|complete|full|final)"
+    r"|(?:I(?:'ve| have) (?:revised|updated|rewritten|woven|added|expanded|trimmed|removed))"
+    r"|(?:Below is (?:the|my|a))"
+    r"|(?:The (?:revised|updated|rewritten) (?:post|version|text))"
+    r"|(?:Only the affected))"
+    r"[^\n]*\n+",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _strip_preamble(text: str) -> str:
+    """Remove LLM meta-commentary that precedes the actual post content."""
+    cleaned = text
+    matched = False
+    for _ in range(3):
+        m = PREAMBLE_RE.match(cleaned)
+        if not m:
+            break
+        cleaned = cleaned[m.end():]
+        matched = True
+    return cleaned.strip() if matched else text
+
+
 def _guard_humanised(
     original: str, humanised: str, target_wc: int
 ) -> tuple[bool, str]:
@@ -143,68 +167,81 @@ class A6BlogWriter(BaseAgent):
         state.agents["A6"].input = prompt
 
         text, usage = await self._llm.call("A6", prompt, signal=signal)
+        text = _strip_preamble(text)
         target = state.target_word_count
         source_names = _extract_source_names(a1_output)
+
+        _NO_PREAMBLE = (
+            "IMPORTANT: Output ONLY the complete blog post from the first heading "
+            "to the final sentence. Do NOT include any preamble, commentary, or "
+            "notes about what you changed."
+        )
 
         # CP-10a: too short
         if _word_count(text) < target * 0.8:
             reprompt = (
-                f"The post is too short. Expand the weakest section to reach ~{target} words. "
-                f"Do not regenerate the full post — only expand.\n\nCurrent post:\n{text}"
+                f"The post below is too short. Expand the weakest section to "
+                f"reach ~{target} words, then output the COMPLETE post.\n"
+                f"{_NO_PREAMBLE}\n\nCurrent post:\n{text}"
             )
             state.agents["A6"].input = reprompt
             expanded, usage = await self._llm.call("A6", reprompt, signal=signal)
-            text = expanded
+            text = _strip_preamble(expanded)
 
         # CP-10b: too long
         elif _word_count(text) > target * 1.2:
             reprompt = (
-                f"The post is too long ({_word_count(text)} words). "
-                f"Cut it to ~{target} words. Do not regenerate — only trim.\n\nCurrent post:\n{text}"
+                f"The post below is too long ({_word_count(text)} words). "
+                f"Trim it to ~{target} words, then output the COMPLETE post.\n"
+                f"{_NO_PREAMBLE}\n\nCurrent post:\n{text}"
             )
             state.agents["A6"].input = reprompt
             trimmed, usage = await self._llm.call("A6", reprompt, signal=signal)
-            text = trimmed
+            text = _strip_preamble(trimmed)
 
         # CP-11: missing concession
         if "concession" not in text.lower():
             reprompt = (
-                f"The post is missing a concession paragraph. "
-                f"Write a concession paragraph that acknowledges the opposing view and append it "
-                f"after the current post. Do not regenerate.\n\nCurrent post:\n{text}"
+                f"The post below is missing a concession paragraph. Add a "
+                f"concession paragraph acknowledging the opposing view, then "
+                f"output the COMPLETE post with the concession included.\n"
+                f"{_NO_PREAMBLE}\n\nCurrent post:\n{text}"
             )
             state.agents["A6"].input = reprompt
-            addition, usage = await self._llm.call("A6", reprompt, signal=signal)
-            text = text + "\n\n" + addition
+            with_concession, usage = await self._llm.call("A6", reprompt, signal=signal)
+            text = _strip_preamble(with_concession)
 
         # CP-12: source citations
         citation_count, missing_sources = _count_citations(text, source_names)
         if citation_count < 3:
             missing_str = ", ".join(missing_sources[:5])
             reprompt = (
-                f"Weave in references to these sources: {missing_str}. "
-                f"Do not regenerate the full post.\n\nCurrent post:\n{text}"
+                f"The post below is missing references to these sources: "
+                f"{missing_str}. Weave them into the existing text naturally, "
+                f"then output the COMPLETE post.\n"
+                f"{_NO_PREAMBLE}\n\nCurrent post:\n{text}"
             )
             state.agents["A6"].input = reprompt
             with_citations, usage = await self._llm.call("A6", reprompt, signal=signal)
-            text = with_citations
+            text = _strip_preamble(with_citations)
 
-        # CP: hedge phrases — targeted reprompt for specific paragraph
+        # CP: hedge phrases
         if HEDGE_PATTERN.search(text):
             reprompt = (
-                f"Remove hedge phrases from the post. "
-                f"Replace any hedging language with a clear direct statement. "
-                f"Do not regenerate.\n\nCurrent post:\n{text}"
+                f"The post below contains hedge phrases. Replace every hedge "
+                f"with a clear direct statement, then output the COMPLETE post.\n"
+                f"{_NO_PREAMBLE}\n\nCurrent post:\n{text}"
             )
             state.agents["A6"].input = reprompt
             dehedged, usage = await self._llm.call("A6", reprompt, signal=signal)
-            text = dehedged
+            text = _strip_preamble(dehedged)
 
         # ── Humanise + rhythm break ──────────────────────────────────
         pre_humanised = text
         humanise_prompt = (
             "Rewrite the blog post below to read like it was written by an "
-            "experienced practitioner, not an AI.\n\n"
+            "experienced practitioner, not an AI. Output the COMPLETE rewritten "
+            "post and nothing else.\n\n"
             "Rules:\n"
             "- Inject first-person perspective where natural "
             '("We see this during audits", "Most teams hit this wall")\n'
@@ -218,11 +255,13 @@ class A6BlogWriter(BaseAgent):
             "- Stay within 10% of the current word count\n"
             "- Do NOT add new sections, remove sections, or change the argument\n"
             "- Do NOT introduce hedge phrases: 'it depends', 'on the one hand', "
-            "'nuanced', 'both sides', 'complex picture'\n\n"
+            "'nuanced', 'both sides', 'complex picture'\n"
+            "- Do NOT include any preamble or commentary about changes\n\n"
             f"Current post:\n{text}"
         )
         state.agents["A6"].input = humanise_prompt
         humanised, h_usage = await self._llm.call("A6", humanise_prompt, signal=signal)
+        humanised = _strip_preamble(humanised)
 
         humanised = _replace_em_dashes(humanised)
 
