@@ -289,7 +289,7 @@
 <div class="card" id="step-query">
   <div class="field">
     <label for="query-input">What would you like to research?</label>
-    <input type="text" id="query-input" placeholder="e.g. remote work, AI in education, UBI…" />
+    <textarea id="query-input" rows="4" placeholder="Describe what you want to investigate — a keyword, a question, an opinion, or even a paragraph. For example:&#10;&#10;'I want to understand whether AI-generated code is actually production-quality, or just fast and sloppy.'&#10;&#10;GPT-4.1 will extract the core topic and suggest research angles."></textarea>
   </div>
   <div id="query-error" class="error-banner hidden"></div>
   <button class="btn btn-primary btn-full" id="btn-explore" onclick="exploreTopics()">
@@ -429,9 +429,9 @@
     }
   }
 
-  // Allow Enter key in query input
+  // Ctrl+Enter / Cmd+Enter submits; plain Enter adds a newline (textarea)
   document.getElementById('query-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') exploreTopics();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) exploreTopics();
   });
 
   // ── Render topic selection ────────────────────────────────────────────────

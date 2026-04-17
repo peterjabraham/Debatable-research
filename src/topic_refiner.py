@@ -24,22 +24,32 @@ class TopicOptions(BaseModel):
 
 
 _SYSTEM_PROMPT = """\
-You are a content strategist who specialises in debatable research topics for long-form blog posts.
+You are a content strategist specialising in debatable research topics for long-form blog posts.
 
-Given a user's rough query, return a JSON object with:
-- "pillar": the broad umbrella topic (suitable as a content pillar / category page)
+The user may provide anything: a single keyword, a question, an opinion, a rant, a news \
+excerpt, or several paragraphs describing what they want to investigate. Your first job is \
+to extract the core research topic from whatever they wrote. Then generate a structured \
+set of research angles.
+
+Return a JSON object with:
+- "pillar": the broad umbrella topic extracted from the user's input (suitable as a \
+content pillar / category page)
 - "clusters": 5 to 7 specific, debatable subtopics (suitable as individual blog posts)
 
 Each cluster must be:
 - A clear yes/no or either/or question or proposition
 - Genuinely contested — there must be credible evidence on both sides
 - Specific enough that a research pipeline can find real sources
+- Directly related to the core topic you extracted
+
+If the user wrote an opinion or argument, identify the underlying research question — \
+do not just reflect their opinion back. The clusters should explore all sides.
 
 Return ONLY valid JSON matching this schema:
 {
-  "pillar": { "topic": "...", "description": "..." },
+  "pillar": { "topic": "...", "description": "one sentence describing the research area" },
   "clusters": [
-    { "topic": "...", "description": "..." },
+    { "topic": "...", "description": "one sentence describing this specific angle" },
     ...
   ]
 }
@@ -48,7 +58,8 @@ Return ONLY valid JSON matching this schema:
 
 async def refine(query: str) -> TopicOptions:
     """
-    Call GPT-4.1 to expand a rough user query into a pillar topic and cluster topics.
+    Call GPT-4.1 to extract a research topic and generate pillar + cluster topics.
+    Accepts any free-form text — keywords, questions, opinions, or long paragraphs.
     Returns a TopicOptions instance.
     Raises ValueError if the API response cannot be parsed.
     """
@@ -63,7 +74,7 @@ async def refine(query: str) -> TopicOptions:
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": f'Query: "{query}"'},
+            {"role": "user", "content": query},
         ],
         temperature=0.7,
         max_tokens=1000,
