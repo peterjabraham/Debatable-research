@@ -1,6 +1,9 @@
 [deploy]
 healthcheckPath = "/health"
 healthcheckTimeout = 60
-startCommand = "uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}"
+# startCommand intentionally omitted: the Dockerfile CMD runs uvicorn via
+# `sh -c` so Railway's $PORT env var is expanded. Setting startCommand here
+# would bypass the shell and pass the literal string "${PORT:-8000}" to
+# uvicorn's --port flag, which fails with "not a valid integer".
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
