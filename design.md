@@ -8,7 +8,7 @@
 
 | Token          | Value     | Usage                              |
 |----------------|-----------|-------------------------------------|
-| `--bg`         | `#f2f0ec` | Page background (warm off-white)   |
+| `--bg`         | `#ccd8b3` | Page background (muted sage green) |
 | `--surface`    | `#ffffff` | Card / panel background            |
 | `--surface2`   | `#e8e5df` | Input fields, code blocks          |
 | `--border`     | `#d4d0c8` | Borders, dividers                  |
@@ -26,12 +26,12 @@
 | Role      | Family                | Weight      | Loaded from          |
 |-----------|-----------------------|-------------|----------------------|
 | Headings  | **Ubuntu**            | 400 / 500 / 700 | Google Fonts    |
-| Body text | **Kreon**             | 300–700     | Google Fonts         |
+| Body text | **Cormorant Garamond** | 300–700    | Google Fonts         |
 
 ### Where each font applies
 
 - **Ubuntu** (`--font-heading`): `h1`, labels, section titles, buttons, tabs, agent names, status badges.
-- **Kreon** (`--font-body`): body copy, inputs, textareas, prose panels, depth hints, token summaries.
+- **Cormorant Garamond** (`--font-body`): body copy, inputs, textareas, prose panels, depth hints, token summaries.
 
 ## Layout
 
