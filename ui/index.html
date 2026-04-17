@@ -374,13 +374,22 @@
 <script>
   // ── Config ────────────────────────────────────────────────────────────────
   // API_BASE is injected by the server from RAILWAY_API_URL in .env.
-  // Falls back to localhost when running locally.
-  const API_BASE = (
-    document.querySelector('meta[name="api-base"]')?.content ||
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:8000'
-      : '')
-  );
+  // Since the UI is served from the same origin as the API, empty string ("")
+  // is the correct default — fetch calls will be relative to the current host.
+  // We only override for local dev or when RAILWAY_API_URL is explicitly set
+  // to a full URL (with https:// scheme).
+  const API_BASE = (() => {
+    const injected = document.querySelector('meta[name="api-base"]')?.content?.trim();
+    if (injected && /^https?:\/\//i.test(injected)) {
+      // Full URL with scheme — use as-is
+      return injected.replace(/\/$/, '');
+    }
+    // No injected URL (or missing scheme) — use same-origin for production,
+    // localhost:8000 for local dev.
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8000';
+    return '';
+  })();
 
   // ── State ─────────────────────────────────────────────────────────────────
   let topicOptions = null;   // { pillar, clusters }
