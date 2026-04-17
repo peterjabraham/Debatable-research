@@ -12,5 +12,6 @@ COPY . .
 
 EXPOSE 8000
 
-# Railway injects $PORT at runtime; default to 8000 for local docker runs.
-CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Listen on a fixed port (8000). Railway's service-domain form asks which
+# port the app listens on and routes edge traffic there, so this must match.
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
