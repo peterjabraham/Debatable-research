@@ -380,7 +380,7 @@
   </div>
 
   <div class="actions-row">
-    <button class="btn btn-primary" onclick="copyPost()">Copy post</button>
+    <button class="btn btn-primary" onclick="downloadPost()">Download .md</button>
     <button class="btn btn-ghost" onclick="startOver()">New research</button>
   </div>
 </div>
@@ -636,13 +636,19 @@
     document.getElementById(`panel-${name}`).classList.add('active');
   }
 
-  function copyPost() {
+  function downloadPost() {
     const text = document.getElementById('content-post').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = event.target;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy post'; }, 2000);
-    });
+    const slug = (topicOptions?.pillar?.topic || 'post')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    const blob = new Blob([text], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slug}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function startOver() {
