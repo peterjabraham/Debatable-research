@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debatable Research</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3248;
+      --accent: #6c63ff;
+      --accent-hover: #8179ff;
+      --text: #e8eaf6;
+      --text-muted: #7c82a8;
+      --success: #4caf76;
+      --warning: #e8a04a;
+      --error: #e85a4a;
+      --running: #5a9be8;
+      --radius: 10px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      width: 100%;
+      max-width: 680px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"], input[type="number"], textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .field { margin-bottom: 20px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+    .btn-full { width: 100%; justify-content: center; }
+
+    /* ---- Pillar radio ---- */
+    .pillar-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .pillar-option:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.08);
+    }
+    .pillar-option input[type="radio"] { margin-top: 2px; accent-color: var(--accent); }
+    .pillar-option .opt-label { font-weight: 600; font-size: 0.95rem; }
+    .pillar-option .opt-desc { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ---- Cluster checkbox ---- */
+    .cluster-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .cluster-option:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.06);
+    }
+    .cluster-option input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+    .cluster-option .opt-label { font-size: 0.92rem; font-weight: 500; }
+    .cluster-option .opt-desc { font-size: 0.80rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ---- Depth hint ---- */
+    .depth-hint {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      background: var(--surface2);
+      border-radius: 6px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+    .depth-hint span { color: var(--accent); font-weight: 600; }
+
+    /* ---- Agent progress ---- */
+    .agent-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .agent-row:last-child { border-bottom: none; }
+    .agent-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .agent-name { flex: 1; font-weight: 500; }
+    .agent-tokens { color: var(--text-muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+    .agent-status-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .badge-pending  { background: rgba(124,130,168,0.15); color: var(--text-muted); }
+    .badge-running  { background: rgba(90,155,232,0.15); color: var(--running); }
+    .badge-completed{ background: rgba(76,175,118,0.15); color: var(--success); }
+    .badge-failed   { background: rgba(232,90,74,0.15);  color: var(--error); }
+    .badge-timed_out{ background: rgba(232,160,74,0.15); color: var(--warning); }
+
+    /* ---- Tabs ---- */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font);
+      transition: all 0.15s;
+    }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ---- Content panels ---- */
+    .prose {
+      font-size: 0.93rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    pre.code-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ---- Actions row ---- */
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ---- Total tokens ---- */
+    .token-summary {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    /* ---- Error banner ---- */
+    .error-banner {
+      background: rgba(232,90,74,0.1);
+      border: 1px solid rgba(232,90,74,0.3);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--error);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    /* ---- Spinner ---- */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ---- Section titles ---- */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      margin-top: 24px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Debatable Research</h1>
+  <p>Research a topic, map the evidence, and write a publication-ready post — powered by Claude.</p>
+</header>
+
+<!-- ══════════════════ STEP 1: Rough query ══════════════════ -->
+<div class="card" id="step-query">
+  <div class="field">
+    <label for="query-input">What would you like to research?</label>
+    <input type="text" id="query-input" placeholder="e.g. remote work, AI in education, UBI…" />
+  </div>
+  <div id="query-error" class="error-banner hidden"></div>
+  <button class="btn btn-primary btn-full" id="btn-explore" onclick="exploreTopics()">
+    Explore topics →
+  </button>
+</div>
+
+<!-- ══════════════════ STEP 2: Topic selection ══════════════════ -->
+<div class="card hidden" id="step-select">
+  <div class="section-title">Pillar topic <span style="color:var(--text-muted);font-weight:400;text-transform:none">(select one)</span></div>
+  <div id="pillar-list"></div>
+
+  <div class="section-title" style="margin-top:28px">Cluster topics <span style="color:var(--text-muted);font-weight:400;text-transform:none">(select one or more)</span></div>
+  <div id="cluster-list"></div>
+  <div class="depth-hint" id="depth-hint">Select at least one cluster topic to continue.</div>
+
+  <div class="section-title">About your audience</div>
+  <div class="field">
+    <label for="audience-input">Audience</label>
+    <input type="text" id="audience-input" placeholder="e.g. knowledge workers and managers" />
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label for="tone-input">Tone</label>
+      <input type="text" id="tone-input" placeholder="e.g. evidence-based and direct" />
+    </div>
+    <div class="field">
+      <label for="words-input">Word count</label>
+      <input type="number" id="words-input" value="700" min="300" max="2000" />
+    </div>
+  </div>
+  <div class="field">
+    <label for="sources-input">Seed sources (optional, one URL per line)</label>
+    <textarea id="sources-input" placeholder="https://example.com/study&#10;https://another.com/report"></textarea>
+  </div>
+
+  <div id="select-error" class="error-banner hidden"></div>
+
+  <div style="display:flex;gap:10px;margin-top:4px">
+    <button class="btn btn-ghost" onclick="backToQuery()">← Back</button>
+    <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-run" onclick="startPipeline()">
+      Research this topic →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════ STEP 3: Progress ══════════════════ -->
+<div class="card hidden" id="step-progress">
+  <div class="section-title">Pipeline progress</div>
+  <div id="agent-rows"></div>
+  <div class="token-summary" id="token-summary"></div>
+</div>
+
+<!-- ══════════════════ STEP 4: Results ══════════════════ -->
+<div class="card hidden" id="step-results">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('post')">Post</button>
+    <button class="tab" onclick="switchTab('verdict')">Verdict</button>
+    <button class="tab" onclick="switchTab('sources')">Sources</button>
+    <button class="tab" onclick="switchTab('audit')">Audit</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-post">
+    <div class="prose" id="content-post"></div>
+  </div>
+  <div class="tab-panel" id="panel-verdict">
+    <div class="prose" id="content-verdict"></div>
+  </div>
+  <div class="tab-panel" id="panel-sources">
+    <div class="prose" id="content-sources"></div>
+  </div>
+  <div class="tab-panel" id="panel-audit">
+    <pre class="code-block" id="content-audit"></pre>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn btn-primary" onclick="copyPost()">Copy post</button>
+    <button class="btn btn-ghost" onclick="startOver()">New research</button>
+  </div>
+</div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────────
+  // Replace with your Railway URL before deploying to Cloudflare Pages.
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://YOUR_RAILWAY_URL_HERE';
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let topicOptions = null;   // { pillar, clusters }
+  let currentRunId = null;
+  let pollInterval = null;
+  let lastAuditData = null;
+
+  // ── UI helpers ────────────────────────────────────────────────────────────
+  function show(id)  { document.getElementById(id).classList.remove('hidden'); }
+  function hide(id)  { document.getElementById(id).classList.add('hidden'); }
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+  function clearError(id) {
+    document.getElementById(id).classList.add('hidden');
+  }
+
+  // ── Step 1 → Refine ───────────────────────────────────────────────────────
+  async function exploreTopics() {
+    const query = document.getElementById('query-input').value.trim();
+    if (!query) { showError('query-error', 'Please enter a topic to research.'); return; }
+    clearError('query-error');
+
+    const btn = document.getElementById('btn-explore');
+    btn.innerHTML = '<span class="spinner"></span> Exploring…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/topics/refine`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
+      topicOptions = await res.json();
+      renderTopicSelection();
+      hide('step-query');
+      show('step-select');
+    } catch (err) {
+      showError('query-error', `Could not fetch topics: ${err.message}`);
+    } finally {
+      btn.innerHTML = 'Explore topics →';
+      btn.disabled = false;
+    }
+  }
+
+  // Allow Enter key in query input
+  document.getElementById('query-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') exploreTopics();
+  });
+
+  // ── Render topic selection ────────────────────────────────────────────────
+  function renderTopicSelection() {
+    const { pillar, clusters } = topicOptions;
+
+    // Pillar radio
+    const pillarList = document.getElementById('pillar-list');
+    pillarList.innerHTML = `
+      <label class="pillar-option">
+        <input type="radio" name="pillar" value="${esc(pillar.topic)}" checked />
+        <div>
+          <div class="opt-label">${esc(pillar.topic)}</div>
+          <div class="opt-desc">${esc(pillar.description)}</div>
+        </div>
+      </label>`;
+
+    // Cluster checkboxes
+    const clusterList = document.getElementById('cluster-list');
+    clusterList.innerHTML = clusters.map((c, i) => `
+      <label class="cluster-option">
+        <input type="checkbox" name="cluster" value="${esc(c.topic)}" ${i === 0 ? 'checked' : ''} onchange="updateDepthHint()" />
+        <div>
+          <div class="opt-label">${esc(c.topic)}</div>
+          <div class="opt-desc">${esc(c.description)}</div>
+        </div>
+      </label>`).join('');
+
+    updateDepthHint();
+  }
+
+  function updateDepthHint() {
+    const count = document.querySelectorAll('input[name="cluster"]:checked').length;
+    const hint = document.getElementById('depth-hint');
+    if (count === 0) {
+      hint.innerHTML = 'Select at least one cluster topic to continue.';
+    } else if (count === 1) {
+      hint.innerHTML = `<span>${count} cluster selected</span> — Focused, single-angle research`;
+    } else if (count <= 3) {
+      hint.innerHTML = `<span>${count} clusters selected</span> — Balanced, multi-angle research`;
+    } else {
+      hint.innerHTML = `<span>${count} clusters selected</span> — Wide, comprehensive coverage`;
+    }
+  }
+
+  function backToQuery() {
+    hide('step-select');
+    show('step-query');
+  }
+
+  // ── Step 2 → Start pipeline ───────────────────────────────────────────────
+  async function startPipeline() {
+    clearError('select-error');
+
+    const pillar = document.querySelector('input[name="pillar"]:checked')?.value || '';
+    const clusters = [...document.querySelectorAll('input[name="cluster"]:checked')].map(el => el.value);
+    const audience = document.getElementById('audience-input').value.trim();
+    const tone     = document.getElementById('tone-input').value.trim();
+    const words    = parseInt(document.getElementById('words-input').value, 10) || 700;
+    const rawSources = document.getElementById('sources-input').value.trim();
+    const sources  = rawSources ? rawSources.split('\n').map(s => s.trim()).filter(Boolean) : [];
+
+    if (!clusters.length) { showError('select-error', 'Select at least one cluster topic.'); return; }
+    if (!audience) { showError('select-error', 'Please enter a target audience.'); return; }
+    if (!tone)     { showError('select-error', 'Please enter a writing tone.'); return; }
+
+    const btn = document.getElementById('btn-run');
+    btn.innerHTML = '<span class="spinner"></span> Starting…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pillar_topic: pillar, cluster_topics: clusters, audience, tone, words, sources }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || `HTTP ${res.status}`);
+      const { run_id } = await res.json();
+      currentRunId = run_id;
+      hide('step-select');
+      renderProgressRows();
+      show('step-progress');
+      startPolling();
+    } catch (err) {
+      showError('select-error', `Could not start pipeline: ${err.message}`);
+      btn.innerHTML = 'Research this topic →';
+      btn.disabled = false;
+    }
+  }
+
+  // ── Agent progress rows ───────────────────────────────────────────────────
+  const AGENT_LABELS = {
+    A1: 'Research Collector',
+    A2: 'Claim Extractor',
+    A3: 'Landscape Mapper',
+    A4: "Devil's Advocate",
+    A5: 'Evidence Judge',
+    A6: 'Blog Writer',
+  };
+
+  function renderProgressRows() {
+    const container = document.getElementById('agent-rows');
+    container.innerHTML = Object.entries(AGENT_LABELS).map(([id, name]) => `
+      <div class="agent-row" id="row-${id}">
+        <div class="agent-icon" id="icon-${id}">·</div>
+        <div class="agent-name">${id} — ${name}</div>
+        <div class="agent-tokens" id="tokens-${id}"></div>
+        <div class="agent-status-badge badge-pending" id="badge-${id}">pending</div>
+      </div>`).join('');
+  }
+
+  function updateProgressRows(agents, total) {
+    agents.forEach(agent => {
+      const icon  = document.getElementById(`icon-${agent.id}`);
+      const badge = document.getElementById(`badge-${agent.id}`);
+      const tok   = document.getElementById(`tokens-${agent.id}`);
+      if (!icon) return;
+      badge.className = `agent-status-badge badge-${agent.status}`;
+      badge.textContent = agent.status.replace('_', ' ');
+      if (agent.status === 'completed') {
+        icon.textContent = '✓';
+        icon.style.color = 'var(--success)';
+        if (agent.token_usage) tok.textContent = `${agent.token_usage.total_tokens.toLocaleString()} tokens`;
+      } else if (agent.status === 'running') {
+        icon.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:1.5px;border-top-color:var(--running)"></span>';
+      } else if (agent.status === 'failed' || agent.status === 'timed_out') {
+        icon.textContent = '✗';
+        icon.style.color = 'var(--error)';
+      }
+    });
+    const ts = document.getElementById('token-summary');
+    ts.textContent = total ? `Total tokens used: ${total.toLocaleString()}` : '';
+  }
+
+  // ── Polling ───────────────────────────────────────────────────────────────
+  function startPolling() {
+    pollInterval = setInterval(pollStatus, 3000);
+    pollStatus(); // immediate first check
+  }
+
+  async function pollStatus() {
+    if (!currentRunId) return;
+    try {
+      const res = await fetch(`${API_BASE}/jobs/${currentRunId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      updateProgressRows(data.agents, data.total_tokens);
+
+      if (data.pipeline_status === 'completed') {
+        clearInterval(pollInterval);
+        lastAuditData = data;
+        showResults(data);
+      } else if (data.pipeline_status === 'failed') {
+        clearInterval(pollInterval);
+        const failed = data.agents.find(a => a.status === 'failed');
+        const msg = failed?.error || 'Pipeline failed. Check logs.';
+        document.getElementById('token-summary').innerHTML =
+          `<span style="color:var(--error)">✗ ${msg}</span>`;
+      }
+    } catch (_) { /* network blip — retry next tick */ }
+  }
+
+  // ── Results ───────────────────────────────────────────────────────────────
+  function showResults(data) {
+    hide('step-progress');
+    document.getElementById('content-post').textContent    = data.post    || '';
+    document.getElementById('content-verdict').textContent = data.verdict || '';
+    document.getElementById('content-sources').textContent = data.sources || '';
+    document.getElementById('content-audit').textContent   = JSON.stringify(
+      { run_id: data.run_id, pipeline_status: data.pipeline_status,
+        total_tokens: data.total_tokens, agents: data.agents }, null, 2);
+    show('step-results');
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(`panel-${name}`).classList.add('active');
+  }
+
+  function copyPost() {
+    const text = document.getElementById('content-post').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy post'; }, 2000);
+    });
+  }
+
+  function startOver() {
+    currentRunId = null;
+    topicOptions = null;
+    lastAuditData = null;
+    clearInterval(pollInterval);
+    document.getElementById('query-input').value = '';
+    hide('step-results');
+    hide('step-progress');
+    hide('step-select');
+    show('step-query');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
