@@ -44,6 +44,7 @@ def _happy_responses() -> list[str]:
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
+        _load_fixture("a6_happy_path"),  # humanise pass
     ]
 
 
@@ -171,19 +172,20 @@ async def test_pipeline_resumes_from_a3(tmp_path, monkeypatch):
     state.agents["A2"].token_usage = _make_token_usage(100)
     state.total_tokens = 200
 
-    # Only A3-A6 responses needed
+    # Only A3-A6 responses needed (+ humanise)
     remaining = [
         _load_fixture("a3_happy_path"),
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
+        _load_fixture("a6_happy_path"),  # humanise pass
     ]
     llm = _make_mock_llm(remaining)
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    assert llm.call.call_count == 4  # only A3-A6
+    assert llm.call.call_count == 5  # A3-A6 + humanise
 
 
 @pytest.mark.asyncio
@@ -199,12 +201,16 @@ async def test_pipeline_resumes_from_a5(tmp_path, monkeypatch):
         state.agents[aid].token_usage = _make_token_usage(100)
     state.total_tokens = 400
 
-    llm = _make_mock_llm([_load_fixture("a5_happy_path"), _load_fixture("a6_happy_path")])
+    llm = _make_mock_llm([
+        _load_fixture("a5_happy_path"),
+        _load_fixture("a6_happy_path"),
+        _load_fixture("a6_happy_path"),  # humanise pass
+    ])
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    assert llm.call.call_count == 2
+    assert llm.call.call_count == 3  # A5 + A6 + humanise
 
 
 @pytest.mark.asyncio
@@ -224,12 +230,13 @@ async def test_skips_completed_agents_on_resume(tmp_path, monkeypatch):
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
+        _load_fixture("a6_happy_path"),  # humanise pass
     ])
     runner = PipelineRunner(llm)
     await runner.run(state)
 
     # A1 was completed and must NOT be re-run
-    assert llm.call.call_count == 5
+    assert llm.call.call_count == 6  # A2-A6 + humanise
 
 
 # ---------------------------------------------------------------------------

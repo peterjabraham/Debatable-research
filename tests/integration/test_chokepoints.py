@@ -74,6 +74,7 @@ async def test_cp01_pipeline_completes_with_fallback_on_no_sources(tmp_path, mon
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -94,6 +95,7 @@ async def test_cp01_fallback_prompt_used_when_no_sources(tmp_path, monkeypatch):
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -121,6 +123,7 @@ async def test_cp02_a2_reprompts_on_source_count_mismatch(tmp_path, monkeypatch)
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),      # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -161,6 +164,7 @@ async def test_cp03_shallow_claims_warning_in_a2_record(tmp_path, monkeypatch):
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(state)
@@ -185,6 +189,7 @@ async def test_cp03_shallow_claims_propagates_to_a5_prompt(tmp_path, monkeypatch
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(state)
@@ -247,6 +252,7 @@ async def test_cp05_a3_reprompts_once_on_conflation(tmp_path, monkeypatch):
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -266,12 +272,13 @@ async def test_cp05_conflation_reprompt_not_triggered_on_clean_output(tmp_path, 
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    # Only 6 calls total (no A3 re-prompt)
-    assert llm.call.call_count == 6
+    # 7 calls total: A1-A6 + humanise (no A3 re-prompt)
+    assert llm.call.call_count == 7
 
 
 # ---------------------------------------------------------------------------
@@ -319,7 +326,7 @@ async def test_cp06_a4_caps_at_3_positions_when_5_present(tmp_path, monkeypatch)
     state.agents["A3"].token_usage = _tok()
     state.total_tokens = 300
 
-    llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"))
+    llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
@@ -363,7 +370,7 @@ async def test_cp06_truncated_positions_warning_set(tmp_path, monkeypatch):
     state.agents["A3"].token_usage = _tok()
     state.total_tokens = 300
 
-    llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"))
+    llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
     runner = PipelineRunner(llm)
     result = await runner.run(state)
     assert "TRUNCATED_POSITIONS" in result.agents["A4"].warnings
@@ -386,6 +393,7 @@ async def test_cp07_a4_reprompts_once_when_block_lacks_citation(tmp_path, monkey
         _fx("a4_happy_path"),          # re-prompt → passes
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),          # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -410,6 +418,7 @@ async def test_cp08_a5_reprompts_once_on_hedge_phrase(tmp_path, monkeypatch):
         _fx("a5_hedging"),      # first call: hedge detected
         _fx("a5_happy_path"),   # re-prompt: clean verdict
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),   # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -454,6 +463,7 @@ async def test_cp09_a5_reprompts_when_section_missing(tmp_path, monkeypatch):
         _fx("a5_missing_sections"),  # missing "## What to avoid"
         _fx("a5_happy_path"),        # re-prompt: all sections present
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),        # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -477,6 +487,7 @@ async def test_cp10a_a6_expansion_reprompt_when_short(tmp_path, monkeypatch):
         _fx("a5_happy_path"),
         _fx("a6_word_count_short"),  # too short
         _fx("a6_happy_path"),        # expansion result
+        _fx("a6_happy_path"),        # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -497,6 +508,7 @@ async def test_cp10a_expansion_reprompt_checked_after(tmp_path, monkeypatch):
         _fx("a5_happy_path"),
         _fx("a6_word_count_short"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),        # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -523,6 +535,7 @@ async def test_cp10b_a6_cut_reprompt_when_long(tmp_path, monkeypatch):
         _fx("a5_happy_path"),
         _fx("a6_word_count_long"),  # too long
         _fx("a6_happy_path"),       # cut result
+        _fx("a6_happy_path"),       # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -542,6 +555,7 @@ async def test_cp10b_cut_reprompt_checked_after(tmp_path, monkeypatch):
         _fx("a5_happy_path"),
         _fx("a6_word_count_long"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),       # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -561,6 +575,7 @@ async def test_cp11_a6_concession_reprompt_appends(tmp_path, monkeypatch):
 
     concession_addition = "Concession: Admittedly, privacy regulations create real friction."
 
+    combined = _fx("a6_no_concession") + "\n\nConcession: Admittedly, privacy regulations create real friction."
     llm = _llm(
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
@@ -569,12 +584,12 @@ async def test_cp11_a6_concession_reprompt_appends(tmp_path, monkeypatch):
         _fx("a5_happy_path"),
         _fx("a6_no_concession"),   # no "concession" keyword
         concession_addition,       # concession-only re-prompt result
+        combined,                  # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
     assert result.agents["A6"].status == AgentStatus.COMPLETED
-    # concession_addition should be appended
-    assert "Concession:" in result.agents["A6"].output
+    assert "concession" in result.agents["A6"].output.lower()
 
 
 @pytest.mark.asyncio
@@ -584,6 +599,7 @@ async def test_cp11_concession_reprompt_does_not_regenerate(tmp_path, monkeypatc
 
     original_no_concession = _fx("a6_no_concession")
     concession_addition = "Concession: Privacy regulations are a genuine headwind."
+    combined = original_no_concession + "\n\n" + concession_addition
 
     llm = _llm(
         _fx("a1_happy_path"),
@@ -593,10 +609,10 @@ async def test_cp11_concession_reprompt_does_not_regenerate(tmp_path, monkeypatc
         _fx("a5_happy_path"),
         original_no_concession,
         concession_addition,
+        combined,                  # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
-    # Original post body should still be present (not regenerated)
     assert original_no_concession[:50] in result.agents["A6"].output
 
 
@@ -617,6 +633,7 @@ async def test_cp12_a6_citation_reprompt_lists_missing_sources(tmp_path, monkeyp
         _fx("a5_happy_path"),
         _fx("a6_no_citations"),  # < 3 source citations
         _fx("a6_happy_path"),    # after citation re-prompt
+        _fx("a6_happy_path"),    # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
@@ -636,11 +653,14 @@ async def test_cp12_citation_reprompt_contains_missing_source_names(tmp_path, mo
         _fx("a5_happy_path"),
         _fx("a6_no_citations"),
         _fx("a6_happy_path"),
+        _fx("a6_happy_path"),    # humanise pass
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
-    # The re-prompt input should mention "Weave in" with source names
-    assert "Weave in" in result.agents["A6"].input or "weave in" in result.agents["A6"].input.lower()
+    # The citation re-prompt is the 7th LLM call (index 6); final input is
+    # the humanise prompt, so check call args directly.
+    citation_reprompt = llm.call.call_args_list[6][0][1]
+    assert "weave in" in citation_reprompt.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -832,7 +852,7 @@ async def test_cp17_context_near_limit_warning_emitted(tmp_path, monkeypatch):
         state.agents[aid].token_usage = _tok(50)
     state.total_tokens = 170  # > 160 threshold
 
-    llm = _llm(_fx("a5_happy_path"), _fx("a6_happy_path"))
+    llm = _llm(_fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
@@ -861,7 +881,7 @@ async def test_cp17_context_limit_warning_logged(tmp_path, monkeypatch, caplog):
 
     import logging
     with caplog.at_level(logging.WARNING, logger="src.pipeline.runner"):
-        llm = _llm(_fx("a5_happy_path"), _fx("a6_happy_path"))
+        llm = _llm(_fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
         runner = PipelineRunner(llm)
         await runner.run(state)
 

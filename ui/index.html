@@ -3,29 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Debatable Research</title>
+  <title>The Debated Researcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kreon:wght@300;400;500;600;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3248;
+      --bg: #f2f0ec;
+      --surface: #ffffff;
+      --surface2: #e8e5df;
+      --border: #d4d0c8;
       --accent: #6c63ff;
-      --accent-hover: #8179ff;
-      --text: #e8eaf6;
-      --text-muted: #7c82a8;
-      --success: #4caf76;
-      --warning: #e8a04a;
-      --error: #e85a4a;
-      --running: #5a9be8;
+      --accent-hover: #5a52e0;
+      --text: #2c2c2c;
+      --text-muted: #6b6b6b;
+      --success: #2e8b57;
+      --warning: #c87b00;
+      --error: #c0392b;
+      --running: #2980b9;
       --radius: 10px;
-      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-heading: 'Ubuntu', system-ui, sans-serif;
+      --font-body: 'Kreon', Georgia, serif;
     }
 
     body {
-      font-family: var(--font);
+      font-family: var(--font-body);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -40,6 +44,7 @@
       margin-bottom: 48px;
     }
     header h1 {
+      font-family: var(--font-heading);
       font-size: 2rem;
       font-weight: 700;
       letter-spacing: -0.5px;
@@ -58,10 +63,12 @@
       width: 100%;
       max-width: 680px;
       margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
     label {
       display: block;
+      font-family: var(--font-heading);
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-muted);
@@ -76,7 +83,7 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text);
-      font-family: var(--font);
+      font-family: var(--font-body);
       font-size: 0.95rem;
       padding: 10px 14px;
       outline: none;
@@ -95,7 +102,7 @@
       padding: 12px 24px;
       border: none;
       border-radius: 6px;
-      font-family: var(--font);
+      font-family: var(--font-heading);
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
@@ -126,7 +133,7 @@
     }
     .pillar-option:has(input:checked) {
       border-color: var(--accent);
-      background: rgba(108, 99, 255, 0.08);
+      background: rgba(108, 99, 255, 0.06);
     }
     .pillar-option input[type="radio"] { margin-top: 2px; accent-color: var(--accent); }
     .pillar-option .opt-label { font-weight: 600; font-size: 0.95rem; }
@@ -175,7 +182,7 @@
     }
     .agent-row:last-child { border-bottom: none; }
     .agent-icon { font-size: 1.1rem; width: 22px; text-align: center; }
-    .agent-name { flex: 1; font-weight: 500; }
+    .agent-name { flex: 1; font-family: var(--font-heading); font-weight: 500; }
     .agent-tokens { color: var(--text-muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
     .agent-status-badge {
       font-size: 0.75rem;
@@ -200,7 +207,7 @@
       border: 1px solid var(--border);
       background: transparent;
       color: var(--text-muted);
-      font-family: var(--font);
+      font-family: var(--font-heading);
       transition: all 0.15s;
     }
     .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -257,14 +264,19 @@
     .spinner {
       display: inline-block;
       width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
+      border: 2px solid rgba(108,99,255,0.25);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
+    }
+    .btn-primary .spinner {
+      border-color: rgba(255,255,255,0.3);
+      border-top-color: #fff;
     }
 
     /* ---- Section titles ---- */
     .section-title {
+      font-family: var(--font-heading);
       font-size: 0.75rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -281,8 +293,8 @@
 <body>
 
 <header>
-  <h1>Debatable Research</h1>
-  <p>Research a topic, map the evidence, and write a publication-ready post — powered by Claude.</p>
+  <h1>The Debated Researcher</h1>
+  <p>Research a topic, map the evidence, and write a publication-ready post — powered by Claude, OpenAi, Perplexity Sonar and a bunch of research agents.</p>
 </header>
 
 <!-- ══════════════════ STEP 1: Rough query ══════════════════ -->

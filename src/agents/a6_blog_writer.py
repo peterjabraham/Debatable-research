@@ -1,3 +1,4 @@
+import logging
 import re
 
 from src.agents.base import BaseAgent
@@ -5,14 +6,60 @@ from src.llm.client import LLMClient
 from src.pipeline.state import AgentId, AgentStatus, PipelineState
 from src.utils.errors import AgentValidationError
 
+logger = logging.getLogger(__name__)
+
 HEDGE_PATTERN = re.compile(
     r"\bit depends\b|\bon the one hand\b|\bnuanced\b|\bboth sides\b|\bcomplex picture\b",
     re.IGNORECASE,
 )
 
+EM_DASH = re.compile(r"\s*—\s*")
+
 
 def _word_count(text: str) -> int:
     return len(text.split())
+
+
+def _extract_headings(text: str) -> list[str]:
+    return [line.strip() for line in text.split("\n") if line.strip().startswith("#")]
+
+
+def _extract_urls(text: str) -> set[str]:
+    return set(re.findall(r"https?://[^\s\)>]+", text))
+
+
+def _replace_em_dashes(text: str) -> str:
+    """Replace em dashes with commas, preserving surrounding whitespace."""
+    return EM_DASH.sub(", ", text)
+
+
+def _guard_humanised(
+    original: str, humanised: str, target_wc: int
+) -> tuple[bool, str]:
+    """Check that humanisation preserved structural integrity.
+
+    Returns (passed, reason). If passed is False, caller should fall back
+    to the original text.
+    """
+    orig_headings = _extract_headings(original)
+    new_headings = _extract_headings(humanised)
+    if len(new_headings) < len(orig_headings):
+        return False, f"Lost headings: had {len(orig_headings)}, now {len(new_headings)}"
+
+    orig_urls = _extract_urls(original)
+    new_urls = _extract_urls(humanised)
+    lost_urls = orig_urls - new_urls
+    if lost_urls:
+        return False, f"Lost URLs: {lost_urls}"
+
+    wc = _word_count(humanised)
+    if wc < target_wc * 0.75 or wc > target_wc * 1.25:
+        return False, f"Word count drifted to {wc} (target {target_wc})"
+
+    if HEDGE_PATTERN.search(humanised):
+        return False, "Humanisation re-introduced hedge phrases"
+
+    return True, ""
 
 
 def _extract_source_names(a1_output: str) -> list[str]:
@@ -152,6 +199,41 @@ class A6BlogWriter(BaseAgent):
             state.agents["A6"].input = reprompt
             dehedged, usage = await self._llm.call("A6", reprompt, signal=signal)
             text = dehedged
+
+        # ── Humanise + rhythm break ──────────────────────────────────
+        pre_humanised = text
+        humanise_prompt = (
+            "Rewrite the blog post below to read like it was written by an "
+            "experienced practitioner, not an AI.\n\n"
+            "Rules:\n"
+            "- Inject first-person perspective where natural "
+            '("We see this during audits", "Most teams hit this wall")\n'
+            "- Vary sentence length: mix short punchy sentences with longer "
+            "explanatory ones. Add at least two one-sentence paragraphs.\n"
+            "- Use conversational transitions and fragments where they add punch\n"
+            "- Break any pattern of same-length paragraphs\n"
+            "- Replace every em dash (—) with a comma\n"
+            "- Keep ALL headings exactly as they are (lines starting with #)\n"
+            "- Keep ALL URLs and source citations exactly as they are\n"
+            "- Stay within 10% of the current word count\n"
+            "- Do NOT add new sections, remove sections, or change the argument\n"
+            "- Do NOT introduce hedge phrases: 'it depends', 'on the one hand', "
+            "'nuanced', 'both sides', 'complex picture'\n\n"
+            f"Current post:\n{text}"
+        )
+        state.agents["A6"].input = humanise_prompt
+        humanised, h_usage = await self._llm.call("A6", humanise_prompt, signal=signal)
+
+        humanised = _replace_em_dashes(humanised)
+
+        passed, reason = _guard_humanised(pre_humanised, humanised, target)
+        if passed:
+            text = humanised
+            usage = h_usage
+            logger.info("A6 humanisation passed guard checks")
+        else:
+            logger.warning("A6 humanisation failed guard: %s — using pre-humanised text", reason)
+            text = _replace_em_dashes(pre_humanised)
 
         state.agents["A6"].output = text
         state.agents["A6"].token_usage = usage
