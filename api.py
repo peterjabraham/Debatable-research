@@ -12,11 +12,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 load_dotenv(override=True)
@@ -124,6 +126,17 @@ async def _run_pipeline(run_id: str) -> None:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui() -> HTMLResponse:
+    """Serve the UI with RAILWAY_API_URL injected as a meta tag."""
+    ui_path = Path(__file__).parent / "ui" / "index.html"
+    html = ui_path.read_text()
+    api_base = os.getenv("RAILWAY_API_URL", "")
+    meta_tag = f'<meta name="api-base" content="{api_base}">'
+    html = html.replace("<head>", f"<head>\n  {meta_tag}", 1)
+    return HTMLResponse(content=html)
 
 
 @app.post("/topics/refine")

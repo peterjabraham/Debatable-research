@@ -373,10 +373,14 @@
 
 <script>
   // ── Config ────────────────────────────────────────────────────────────────
-  // Replace with your Railway URL before deploying to Cloudflare Pages.
-  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : 'https://YOUR_RAILWAY_URL_HERE';
+  // API_BASE is injected by the server from RAILWAY_API_URL in .env.
+  // Falls back to localhost when running locally.
+  const API_BASE = (
+    document.querySelector('meta[name="api-base"]')?.content ||
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:8000'
+      : '')
+  );
 
   // ── State ─────────────────────────────────────────────────────────────────
   let topicOptions = null;   // { pillar, clusters }
