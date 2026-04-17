@@ -12,6 +12,7 @@ COPY . .
 
 EXPOSE 8000
 
-# Listen on a fixed port (8000). Railway's service-domain form asks which
-# port the app listens on and routes edge traffic there, so this must match.
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Listen on a fixed port (8000) to match Railway's service-domain target.
+# Bind to :: (IPv6 any) — dual-stack on Linux also accepts IPv4, and Railway's
+# internal proxy uses IPv6, so 0.0.0.0 alone causes a 502 Bad Gateway.
+CMD ["uvicorn", "api:app", "--host", "::", "--port", "8000"]
