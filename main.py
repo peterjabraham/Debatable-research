@@ -44,6 +44,15 @@ def _get_llm_client() -> "LLMClient":  # noqa: F821
     return LLMClient(api_key=api_key)
 
 
+def _get_research_client():
+    """Perplexity client for A1 if PERPLEXITY_API_KEY is set; else None."""
+    api_key = os.getenv("PERPLEXITY_API_KEY", "").strip()
+    if not api_key:
+        return None
+    from src.llm.perplexity import PerplexityClient
+    return PerplexityClient(api_key=api_key)
+
+
 @app.command()
 def run(
     topic: str = typer.Option(..., help="The topic to research and debate"),
@@ -73,7 +82,8 @@ def run(
     console.print(f"Words: {words}")
 
     llm = _get_llm_client()
-    runner = PipelineRunner(llm)
+    research = _get_research_client()
+    runner = PipelineRunner(llm, research_client=research)
 
     try:
         result = asyncio.run(runner.run(state))
@@ -102,7 +112,8 @@ def resume(
     console.print(Panel(f"[bold]Resuming run:[/bold] {run_id}", title="Resume"))
 
     llm = _get_llm_client()
-    runner = PipelineRunner(llm)
+    research = _get_research_client()
+    runner = PipelineRunner(llm, research_client=research)
 
     try:
         result = asyncio.run(runner.run(state))

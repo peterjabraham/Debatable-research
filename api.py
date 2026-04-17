@@ -106,6 +106,16 @@ def _get_llm_client() -> Any:
     return LLMClient(api_key=api_key)
 
 
+def _get_research_client() -> Any | None:
+    """Instantiate Perplexity client if PERPLEXITY_API_KEY is set, else None."""
+    api_key = os.getenv("PERPLEXITY_API_KEY", "").strip()
+    if not api_key:
+        logger.info("PERPLEXITY_API_KEY not set — A1 will use Claude for research")
+        return None
+    from src.llm.perplexity import PerplexityClient
+    return PerplexityClient(api_key=api_key)
+
+
 async def _run_pipeline(run_id: str) -> None:
     """Background task: load checkpoint and run the pipeline to completion."""
     from src.pipeline.checkpoints import load
@@ -113,7 +123,8 @@ async def _run_pipeline(run_id: str) -> None:
     try:
         state = load(run_id)
         llm = _get_llm_client()
-        runner = PipelineRunner(llm)
+        research = _get_research_client()
+        runner = PipelineRunner(llm, research_client=research)
         await runner.run(state)
     except Exception:
         logger.exception("Pipeline run %s failed", run_id)

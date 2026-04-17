@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from src.agents.base import BaseAgent
 from src.llm.client import LLMClient
@@ -33,14 +34,40 @@ class A1ResearchCollector(BaseAgent):
     timeout_ms: int = 90_000
     max_retries: int = 2
 
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: LLMClient, research_client: Any | None = None):
+        """
+        llm_client: Anthropic client — used as fallback and for CP-01 reprompt.
+        research_client: optional Perplexity client. If provided, it is used
+            for the primary live-web search (real URLs, no hallucination).
+            Must expose ``call(agent_id, prompt, signal) -> (text, TokenUsage)``.
+        """
         self._llm = llm_client
+        self._research = research_client
 
     def build_prompt(self, state: PipelineState) -> str:
         sources_str = ""
         if state.provided_sources:
             sources_str = "\n\nProvided sources to include:\n" + "\n".join(
                 f"- {s}" for s in state.provided_sources
+            )
+        if self._research is not None:
+            # Prompt targeted at Perplexity Sonar — it will surface real URLs
+            # via its citations array, which the client appends to the text.
+            return (
+                f"Research the following topic using live web search and compile "
+                f"a numbered list of the most credible sources.\n\n"
+                f"Topic: {state.topic}{sources_str}\n\n"
+                f"For each source, provide the following five fields on separate lines:\n"
+                f"  URL: <exact URL from your search results — do NOT invent URLs>\n"
+                f"  Type: <Academic|Industry|Analyst|News|Case study>\n"
+                f"  Recency: <year>\n"
+                f"  Core claim: <one sentence>\n"
+                f"  Credibility signal: <why credible>\n\n"
+                f"Format each entry as a numbered item (1., 2., 3., ...). "
+                f"Aim for at least 6 sources. Prefer peer-reviewed studies, "
+                f"reputable analyst firms, and primary sources over blog posts. "
+                f"Every URL must appear in your search results — if you cannot "
+                f"verify a URL, omit that entry."
             )
         return (
             f"Research the following topic and compile a numbered list of sources.\n\n"
@@ -74,9 +101,12 @@ class A1ResearchCollector(BaseAgent):
         prompt = self.build_prompt(state)
         state.agents["A1"].input = prompt
 
-        text, usage = await self._llm.call("A1", prompt, signal=signal)
+        # Primary research call — Perplexity if configured, else Claude.
+        primary = self._research if self._research is not None else self._llm
+        text, usage = await primary.call("A1", prompt, signal=signal)
 
-        # CP-01: fallback if no sources found
+        # CP-01: fallback if no sources found — always uses Claude training
+        # knowledge (Perplexity can't fall back to "training" by design).
         if self._no_sources_detected(text):
             fallback_prompt = f"{prompt}\n\n{FALLBACK_A1}"
             state.agents["A1"].input = fallback_prompt

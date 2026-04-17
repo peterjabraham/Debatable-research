@@ -50,9 +50,12 @@ PIPELINE_MAX_TOTAL_TOKENS = int(os.getenv("PIPELINE_MAX_TOTAL_TOKENS", "150000")
 CONTEXT_WARN_THRESHOLD = PIPELINE_MAX_TOTAL_TOKENS * 0.8
 
 
-def _make_agents(llm_client: LLMClient) -> dict[AgentId, BaseAgent]:
+def _make_agents(
+    llm_client: LLMClient,
+    research_client: object | None = None,
+) -> dict[AgentId, BaseAgent]:
     return {
-        "A1": A1ResearchCollector(llm_client),
+        "A1": A1ResearchCollector(llm_client, research_client=research_client),
         "A2": A2ClaimExtractor(llm_client),
         "A3": A3LandscapeMapper(llm_client),
         "A4": A4DevilsAdvocate(llm_client),
@@ -66,9 +69,12 @@ class PipelineRunner:
         self,
         llm_client: LLMClient,
         user_input_fn: Callable[[str], str] | None = None,
+        research_client: object | None = None,
     ):
         self._llm = llm_client
-        self._agents: dict[AgentId, BaseAgent] = _make_agents(llm_client)
+        self._agents: dict[AgentId, BaseAgent] = _make_agents(
+            llm_client, research_client=research_client
+        )
         # user_input_fn used for NO_CONTEST pause prompt
         self._user_input_fn = user_input_fn or input
 
