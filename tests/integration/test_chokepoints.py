@@ -390,7 +390,7 @@ async def test_cp07_a4_reprompts_once_when_block_lacks_citation(tmp_path, monkey
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
     assert result.agents["A4"].status == AgentStatus.COMPLETED
-    assert "cite at least one named source" in result.agents["A4"].input
+    assert "failed validation" in result.agents["A4"].input
 
 
 # ---------------------------------------------------------------------------

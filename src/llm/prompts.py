@@ -73,7 +73,9 @@ def a4_prompt(state: PipelineState) -> str:
         f"Case: <three numbered points making the strongest possible case>\n"
         f"Hardest objection: <the best counterargument against this position>\n"
         f"Response: <how a defender of this position would answer that objection>\n\n"
-        f"Each block must cite at least one named source from the source list.\n\n"
+        f"Each block MUST cite at least one source by name or domain from the "
+        f"source list below. Use the identifier directly in your text "
+        f'(e.g. "according to gartner.com" or "Gartner research shows").\n\n'
         f"Contested positions (from landscape map):\n{a3_output}\n\n"
         f"Source list:\n{a1_output}"
     )

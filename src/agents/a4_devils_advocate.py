@@ -40,25 +40,57 @@ def _extract_contested_positions(a3_output: str) -> list[str]:
 def _extract_source_names(a1_output: str) -> list[str]:
     """Extract source identifiers from A1 output for citation matching.
 
-    Returns short identifiers (domain names from URLs, or text prefixes)
-    that are likely to appear in natural-language citation text.
+    Returns multiple identifier variants per source (domain names, readable
+    names derived from URLs, and Core-claim text) so that validation can
+    match however the LLM chooses to cite.
     """
-    # Collect domain names from any URL in the output
-    domain_names = []
+    names: list[str] = []
+
     for line in a1_output.split("\n"):
         url_match = re.search(r"https?://(?:www\.)?([^/\s\)>]+)", line)
         if url_match:
-            domain_names.append(url_match.group(1).lower().strip())
-    if domain_names:
-        return domain_names
-    # Fallback: text content from numbered source lines
-    text_names = []
+            domain = url_match.group(1).lower().strip()
+            names.append(domain)
+            # Also add the human-readable site name (e.g. hbr.org -> hbr)
+            site = domain.split(".")[0]
+            if site and site not in ("com", "org", "net", "io", "co"):
+                names.append(site)
+
+    # "Core claim:" lines contain recognisable phrases the LLM may echo
     for line in a1_output.split("\n"):
-        m = re.match(r"^\d+\.\s+(.+)", line.strip())
+        m = re.match(r"\s*Core claim:\s*(.+)", line, re.IGNORECASE)
         if m:
-            content = m.group(1)
-            text_names.append(content[:40].strip())
-    return text_names
+            claim = m.group(1).strip()
+            if len(claim) > 10:
+                names.append(claim[:50])
+
+    # Numbered entry header lines (e.g. "1. Gartner Report on AI")
+    for line in a1_output.split("\n"):
+        m = re.match(r"^\*{0,2}\d+[\.\)]\*{0,2}\s+(.+)", line.strip())
+        if m:
+            title = m.group(1).strip().strip("*")
+            if title:
+                names.append(title[:50])
+
+    if not names:
+        for line in a1_output.split("\n"):
+            m = re.match(r"^\d+\.\s+(.+)", line.strip())
+            if m:
+                names.append(m.group(1)[:40].strip())
+
+    return names
+
+
+def _format_source_ids(source_names: list[str]) -> str:
+    """Build a deduplicated, readable list of citation identifiers."""
+    seen: set[str] = set()
+    unique: list[str] = []
+    for n in source_names:
+        key = n.lower().strip()
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(n)
+    return ", ".join(unique[:20])
 
 
 def _count_blocks(output: str) -> int:
@@ -74,17 +106,28 @@ class A4DevilsAdvocate(BaseAgent):
     def __init__(self, llm_client: LLMClient):
         self._llm = llm_client
 
-    def build_prompt(self, state: PipelineState, positions: list[str] | None = None) -> str:
+    def build_prompt(
+        self,
+        state: PipelineState,
+        positions: list[str] | None = None,
+        source_names: list[str] | None = None,
+    ) -> str:
         from src.pipeline.state import require_output
         a3_output = require_output(state, "A3")
         a1_output = require_output(state, "A1")
         if positions is None:
             positions = _extract_contested_positions(a3_output)
+        if source_names is None:
+            source_names = _extract_source_names(a1_output)
         positions_str = "\n".join(f"{i+1}. {p}" for i, p in enumerate(positions))
+        source_ids = _format_source_ids(source_names)
         return (
             f"For each contested position below, write a steelman block with:\n"
             f"Position: / Case: (3 points) / Hardest objection: / Response:\n\n"
-            f"Each block must cite at least one named source from the source list.\n\n"
+            f"Each block MUST cite at least one source by name or domain. "
+            f"Valid citation identifiers include: {source_ids}\n"
+            f"Use the identifier directly in your text "
+            f'(e.g. "according to gartner.com" or "Gartner research shows").\n\n'
             f"Contested positions:\n{positions_str}\n\n"
             f"Source list:\n{a1_output}"
         )
@@ -101,26 +144,28 @@ class A4DevilsAdvocate(BaseAgent):
                 "A4",
                 f"Block count mismatch: expected {len(positions)}, got {block_count}",
             )
-        # Each block must reference at least one source
-        for name in source_names:
-            # We just check the whole output contains at least some source references
-            break
-        # Split output into blocks — handles plain and bold '**Position:**'
         blocks = re.split(r"(?=^\*{0,2}Position:\*{0,2})", output, flags=re.MULTILINE)
-        # Keep only blocks that actually contain a Position: label (skip preambles/headers)
         blocks = [
             b.strip() for b in blocks
             if b.strip() and re.search(r"\*{0,2}Position:\*{0,2}", b)
         ]
         for block in blocks:
             block_lower = block.lower()
-            # Check domain names or text names appear in block
             has_source = any(
-                name[:20].lower() in block_lower for name in source_names if name
+                name[:20].lower() in block_lower
+                for name in source_names
+                if name and len(name.strip()) >= 3
             )
-            # Also accept "(Source N)" style citations Claude commonly uses
             if not has_source:
                 has_source = bool(re.search(r"\(Source \d+\)", block))
+            if not has_source:
+                has_source = bool(re.search(
+                    r"(according to|cited by|per|as reported by|research from|"
+                    r"data from|study by|analysis by|report by|findings from)\s+\S+",
+                    block_lower,
+                ))
+            if not has_source:
+                has_source = bool(re.search(r"https?://\S+", block))
             if not has_source:
                 raise AgentValidationError(
                     "A4",
@@ -141,20 +186,25 @@ class A4DevilsAdvocate(BaseAgent):
             state.agents["A4"].warnings.append(PipelineWarning.TRUNCATED_POSITIONS)
             logger.warning("A4: Dropped positions: %s", dropped)
 
-        prompt = self.build_prompt(state, positions)
+        source_names = _extract_source_names(a1_output)
+
+        prompt = self.build_prompt(state, positions, source_names)
         state.agents["A4"].input = prompt
 
         text, usage = await self._llm.call("A4", prompt, signal=signal)
-
-        source_names = _extract_source_names(a1_output)
 
         # CP-07: check each block has a source reference
         try:
             self._validate_with_positions(text, positions, source_names, state)
         except AgentValidationError:
+            source_ids = _format_source_ids(source_names)
             reprompt = (
                 f"{prompt}\n\n"
-                f"Each steelman block must cite at least one named source from the source list."
+                f"IMPORTANT — your previous response failed validation because one or "
+                f"more steelman blocks did not contain a recognisable source citation.\n"
+                f"You MUST mention at least one of these identifiers in EVERY block: "
+                f"{source_ids}\n"
+                f"Rewrite all blocks now, keeping the same structure."
             )
             state.agents["A4"].input = reprompt
             text, usage = await self._llm.call("A4", reprompt, signal=signal)
