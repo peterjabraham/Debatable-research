@@ -123,7 +123,7 @@ def _count_citations(post: str, source_names: list[str]) -> tuple[int, list[str]
 
 class A6BlogWriter(BaseAgent):
     id: AgentId = "A6"
-    timeout_ms: int = 120_000
+    timeout_ms: int = 300_000
     max_retries: int = 2
 
     def __init__(self, llm_client: LLMClient):
