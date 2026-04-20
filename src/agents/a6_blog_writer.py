@@ -28,9 +28,18 @@ def _extract_urls(text: str) -> set[str]:
     return set(re.findall(r"https?://[^\s\)>]+", text))
 
 
+TRAILING_URL_PUNCT = re.compile(r"(https?://[^\s\)>]+?)[,;:]+(?=\s|$|\))")
+
+
+def _clean_urls(text: str) -> str:
+    """Strip trailing commas/semicolons/colons that got glued to URLs."""
+    return TRAILING_URL_PUNCT.sub(r"\1", text)
+
+
 def _replace_em_dashes(text: str) -> str:
-    """Replace em dashes with commas, preserving surrounding whitespace."""
-    return EM_DASH.sub(", ", text)
+    """Replace em dashes with commas, then fix any broken URLs."""
+    replaced = EM_DASH.sub(", ", text)
+    return _clean_urls(replaced)
 
 
 PREAMBLE_RE = re.compile(
@@ -274,6 +283,7 @@ class A6BlogWriter(BaseAgent):
             logger.warning("A6 humanisation failed guard: %s — using pre-humanised text", reason)
             text = _replace_em_dashes(pre_humanised)
 
+        text = _clean_urls(text)
         state.agents["A6"].output = text
         state.agents["A6"].token_usage = usage
         state.agents["A6"].status = AgentStatus.COMPLETED

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from src.agents.a6_blog_writer import A6BlogWriter, _replace_em_dashes, _strip_preamble
+from src.agents.a6_blog_writer import A6BlogWriter, _clean_urls, _replace_em_dashes, _strip_preamble
 from src.pipeline.state import AgentStatus, PipelineState, TokenUsage
 from src.utils.errors import AgentValidationError
 
@@ -495,6 +495,33 @@ async def test_run_always_calls_humanise(agent, state):
 async def test_run_removes_em_dashes(agent, state):
     result = await agent.run(state)
     assert "—" not in result
+
+
+def test_clean_urls_strips_trailing_comma():
+    assert _clean_urls("see https://example.com/study, for details") == \
+        "see https://example.com/study for details"
+
+
+def test_clean_urls_strips_trailing_semicolon():
+    assert _clean_urls("from https://example.com/report; which") == \
+        "from https://example.com/report which"
+
+
+def test_clean_urls_preserves_clean_urls():
+    text = "visit https://example.com/page for info"
+    assert _clean_urls(text) == text
+
+
+def test_clean_urls_handles_url_at_end_of_line():
+    assert _clean_urls("source: https://example.com/data,") == \
+        "source: https://example.com/data"
+
+
+def test_replace_em_dashes_cleans_urls():
+    text = "from https://example.com/study — which shows growth"
+    result = _replace_em_dashes(text)
+    assert "https://example.com/study" in result
+    assert "https://example.com/study," not in result
 
 
 def test_strip_preamble_removes_meta_commentary():
