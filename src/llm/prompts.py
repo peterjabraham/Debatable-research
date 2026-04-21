@@ -1,10 +1,10 @@
 """
-All 6 agent prompt template functions.
+All agent prompt template functions.
 Each accepts a PipelineState and returns the formatted prompt string.
 """
 from __future__ import annotations
 
-from src.pipeline.state import PipelineState
+from src.pipeline.state import Analogy, PipelineState
 
 
 def a1_prompt(state: PipelineState) -> str:
@@ -62,10 +62,92 @@ def a3_prompt(state: PipelineState) -> str:
     )
 
 
+def build_a35_prompt(state: PipelineState, contested_positions: list[str]) -> str:
+    """A35 Analogy Agent — find structural analogies for each contested position."""
+    positions_block = "\n".join(
+        f"{i + 1}. {pos}" for i, pos in enumerate(contested_positions)
+    )
+    return f"""You are an expert in structural analogy and cross-domain pattern matching.
+
+TOPIC (pillar): {state.topic}
+
+CONTESTED POSITIONS (clusters):
+{positions_block}
+
+---
+
+For each contested position, find exactly 2 structural analogies — cases from history,
+biology, economics, military strategy, or any other domain that share the SAME UNDERLYING
+MECHANISM as that position, even if the surface domain looks completely unrelated.
+
+Requirements:
+- Analogies must be surprising and non-obvious. Avoid the first thing that comes to mind.
+- Match on STRUCTURE (the mechanism), not surface similarity.
+- Each analogy must include an honest account of where it breaks down.
+- Across all analogies, vary the domains — don't use the same field twice.
+
+Respond ONLY with valid JSON, no markdown, no backticks, no preamble:
+
+{{
+  "analogies": [
+    {{
+      "position": "exact text of the contested position this analogy belongs to",
+      "title": "Short punchy name for the analogy (max 8 words)",
+      "domain": "Domain/field (e.g. Industrial History, Biology, Military Strategy)",
+      "structural_parallel": "2-3 sentences: what mechanism makes this structurally identical to the position",
+      "maps_to": "2-3 sentences: how this maps specifically to the contested position in context of '{state.topic}'",
+      "breaks_down": "1 sentence: where this analogy fails"
+    }}
+  ]
+}}"""
+
+
+def _format_analogies_for_a4(state: PipelineState) -> str:
+    """Returns a formatted analogies block for A4, or empty string if none."""
+    if not state.analogies:
+        return ""
+
+    lines = [
+        "STRUCTURAL ANALOGIES (optional grounding for your steelman arguments):",
+        "Where it strengthens the argument, anchor a steelman point in one of these.",
+        "Do not force it — only use an analogy if it genuinely clarifies the mechanism.\n",
+    ]
+    for a in state.analogies:
+        lines.append(f"Position: {a.position}")
+        lines.append(f"  Analogy: {a.title} [{a.domain}]")
+        lines.append(f"  Parallel: {a.structural_parallel}")
+        lines.append(f"  Maps to: {a.maps_to}")
+        lines.append(f"  Breaks down: {a.breaks_down}\n")
+
+    return "\n".join(lines)
+
+
+def _format_hook_analogy_for_a6(state: PipelineState) -> str:
+    """Returns the hook candidate analogy for A6, or empty string if none."""
+    if not state.analogies:
+        return ""
+
+    hook = next((a for a in state.analogies if a.hook_candidate), None)
+    if not hook:
+        return ""
+
+    return (
+        f"ILLUSTRATION ANALOGY (use this in the post):\n"
+        f"The post should use the following structural analogy as an illustration — it makes\n"
+        f"the argument concrete and memorable. Work it in naturally; don't announce it as an analogy.\n\n"
+        f"Analogy: {hook.title}\n"
+        f"Domain: {hook.domain}\n"
+        f"The parallel: {hook.structural_parallel}\n"
+        f"How it maps here: {hook.maps_to}\n"
+        f"Where it breaks down (be honest if you use it): {hook.breaks_down}\n"
+    )
+
+
 def a4_prompt(state: PipelineState) -> str:
     """A4 Devil's Advocate — steelman each contested position."""
     a3_output = state.agents["A3"].output or ""
     a1_output = state.agents["A1"].output or ""
+    analogies_block = _format_analogies_for_a4(state)
     return (
         f"For each contested position listed below, write a steelman block.\n\n"
         f"Required block format:\n"
@@ -78,6 +160,7 @@ def a4_prompt(state: PipelineState) -> str:
         f'(e.g. "according to gartner.com" or "Gartner research shows").\n\n'
         f"Contested positions (from landscape map):\n{a3_output}\n\n"
         f"Source list:\n{a1_output}"
+        + (f"\n\n{analogies_block}" if analogies_block else "")
     )
 
 
@@ -117,6 +200,7 @@ def a6_prompt(state: PipelineState) -> str:
     a1_output = state.agents["A1"].output or ""
     a2_output = state.agents["A2"].output or ""
     angle = f"\nCluster angle: {state.cluster_angle}" if state.cluster_angle else ""
+    hook_block = _format_hook_analogy_for_a6(state)
     return (
         f"Write a blog post based on the verdict and research below.\n\n"
         f"Target audience: {state.audience}\n"
@@ -128,7 +212,8 @@ def a6_prompt(state: PipelineState) -> str:
         f"- A conclusion that reinforces the verdict\n"
         f"- At least 3 named source citations woven into the text\n\n"
         f"Verdict and positioning:\n{a5_output}\n\n"
-        f"Source claims:\n{a2_output}\n\n"
+        + (f"{hook_block}\n" if hook_block else "")
+        + f"Source claims:\n{a2_output}\n\n"
         f"Source list:\n{a1_output}"
     )
 
@@ -141,3 +226,4 @@ ALL_PROMPT_FUNCTIONS = {
     "A5": a5_prompt,
     "A6": a6_prompt,
 }
+

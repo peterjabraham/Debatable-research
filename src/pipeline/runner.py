@@ -21,6 +21,7 @@ from typing import Callable
 from src.agents.a1_research_collector import A1ResearchCollector
 from src.agents.a2_claim_extractor import A2ClaimExtractor
 from src.agents.a3_landscape_mapper import A3LandscapeMapper
+from src.agents.a35_analogy_agent import A35AnalogyAgent
 from src.agents.a4_devils_advocate import A4DevilsAdvocate
 from src.agents.a5_evidence_judge import A5EvidenceJudge
 from src.agents.a6_blog_writer import A6BlogWriter
@@ -58,6 +59,7 @@ def _make_agents(
         "A1": A1ResearchCollector(llm_client, research_client=research_client),
         "A2": A2ClaimExtractor(llm_client),
         "A3": A3LandscapeMapper(llm_client),
+        "A35": A35AnalogyAgent(llm_client),
         "A4": A4DevilsAdvocate(llm_client),
         "A5": A5EvidenceJudge(llm_client),
         "A6": A6BlogWriter(llm_client),
@@ -231,6 +233,19 @@ class PipelineRunner:
         # sources.md
         a1_output = state.agents["A1"].output or ""
         (output_dir / "sources.md").write_text(a1_output)
+
+        # analogies.md (optional — only written when A35 produced results)
+        if state.analogies:
+            lines = ["# Structural Analogies\n"]
+            for a in state.analogies:
+                lines.append(f"## {a.title}  [{a.domain}]")
+                lines.append(f"**Position:** {a.position}\n")
+                lines.append(f"**Structural parallel:** {a.structural_parallel}\n")
+                lines.append(f"**Maps to topic:** {a.maps_to}\n")
+                lines.append(f"**Where it breaks down:** {a.breaks_down}\n")
+                if a.hook_candidate:
+                    lines.append("_↑ Used as post illustration_\n")
+            (output_dir / "analogies.md").write_text("\n".join(lines))
 
         # audit.json
         import json

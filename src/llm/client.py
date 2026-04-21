@@ -20,6 +20,7 @@ AGENT_MODELS: dict[str, str] = {
     "A1": "claude-sonnet-4-6",
     "A2": "claude-sonnet-4-6",
     "A3": "claude-opus-4-5",
+    "A35": "claude-sonnet-4-6",
     "A4": "claude-opus-4-5",
     "A5": "claude-opus-4-5",
     "A6": "claude-sonnet-4-6",
@@ -27,11 +28,13 @@ AGENT_MODELS: dict[str, str] = {
 
 AGENT_TEMPERATURES: dict[str, float] = {
     "A1": 0.2, "A2": 0.1, "A3": 0.3,
+    "A35": 0.5,
     "A4": 0.4, "A5": 0.2, "A6": 0.7,
 }
 
 MAX_TOKENS_PER_AGENT: dict[str, int] = {
     "A1": 2000, "A2": 3000, "A3": 2000,
+    "A35": 2000,
     "A4": 3000, "A5": 1500, "A6": 4000,
 }
 

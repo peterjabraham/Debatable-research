@@ -9,8 +9,19 @@ from pydantic import BaseModel, Field
 
 from src.utils.errors import InvalidStateTransitionError, PipelineDependencyError
 
-AgentId = Literal["A1", "A2", "A3", "A4", "A5", "A6"]
-AGENT_ORDER: list[AgentId] = ["A1", "A2", "A3", "A4", "A5", "A6"]
+AgentId = Literal["A1", "A2", "A3", "A35", "A4", "A5", "A6"]
+AGENT_ORDER: list[AgentId] = ["A1", "A2", "A3", "A35", "A4", "A5", "A6"]
+
+
+class Analogy(BaseModel):
+    """A structural analogy produced by A35, stored on PipelineState."""
+    position: str
+    title: str
+    domain: str
+    structural_parallel: str
+    maps_to: str
+    breaks_down: str
+    hook_candidate: bool = False
 
 
 class AgentStatus(str, Enum):
@@ -56,6 +67,7 @@ class PipelineState(BaseModel):
     tone: str
     target_word_count: int = 900
     cluster_angle: str | None = None
+    analogies: list[Analogy] | None = None
     provided_sources: list[str] = Field(default_factory=list)
     agents: dict[AgentId, AgentRecord] = Field(
         default_factory=lambda: {aid: AgentRecord(id=aid) for aid in AGENT_ORDER}

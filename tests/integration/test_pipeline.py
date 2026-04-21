@@ -41,6 +41,7 @@ def _happy_responses() -> list[str]:
         _load_fixture("a1_happy_path"),
         _load_fixture("a2_happy_path"),
         _load_fixture("a3_happy_path"),
+        _load_fixture("a35_happy_path"),  # A35 analogy pass
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
@@ -63,7 +64,7 @@ async def test_full_pipeline_runs_a1_to_a6(tmp_path, monkeypatch):
     result = await runner.run(state)
 
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    for aid in ["A1", "A2", "A3", "A4", "A5", "A6"]:
+    for aid in ["A1", "A2", "A3", "A35", "A4", "A5", "A6"]:
         assert result.agents[aid].status == AgentStatus.COMPLETED
 
 
@@ -93,7 +94,7 @@ async def test_final_state_has_all_agents_completed(tmp_path, monkeypatch):
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
-    for aid in ["A1", "A2", "A3", "A4", "A5", "A6"]:
+    for aid in ["A1", "A2", "A3", "A35", "A4", "A5", "A6"]:
         assert result.agents[aid].status == AgentStatus.COMPLETED
 
 
@@ -149,8 +150,8 @@ async def test_total_tokens_accumulates(tmp_path, monkeypatch):
     runner = PipelineRunner(llm)
     result = await runner.run(state)
 
-    # 6 agents × 100 tokens each = 600
-    assert result.total_tokens == 600
+    # 7 agents × 100 tokens each = 700
+    assert result.total_tokens == 700
 
 
 # ---------------------------------------------------------------------------
@@ -172,9 +173,10 @@ async def test_pipeline_resumes_from_a3(tmp_path, monkeypatch):
     state.agents["A2"].token_usage = _make_token_usage(100)
     state.total_tokens = 200
 
-    # Only A3-A6 responses needed (+ humanise)
+    # Only A3-A6 responses needed (+ A35 + humanise)
     remaining = [
         _load_fixture("a3_happy_path"),
+        _load_fixture("a35_happy_path"),  # A35 analogy pass
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
@@ -185,7 +187,7 @@ async def test_pipeline_resumes_from_a3(tmp_path, monkeypatch):
     result = await runner.run(state)
 
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    assert llm.call.call_count == 5  # A3-A6 + humanise
+    assert llm.call.call_count == 6  # A3, A35, A4, A5, A6, humanise
 
 
 @pytest.mark.asyncio
@@ -199,7 +201,10 @@ async def test_pipeline_resumes_from_a5(tmp_path, monkeypatch):
         state.agents[aid].status = AgentStatus.COMPLETED
         state.agents[aid].output = _load_fixture(fname)
         state.agents[aid].token_usage = _make_token_usage(100)
-    state.total_tokens = 400
+    # A35 sits between A3 and A4 — pre-complete it so the runner skips it
+    state.agents["A35"].status = AgentStatus.COMPLETED
+    state.agents["A35"].token_usage = _make_token_usage(100)
+    state.total_tokens = 500
 
     llm = _make_mock_llm([
         _load_fixture("a5_happy_path"),
@@ -227,6 +232,7 @@ async def test_skips_completed_agents_on_resume(tmp_path, monkeypatch):
     llm = _make_mock_llm([
         _load_fixture("a2_happy_path"),
         _load_fixture("a3_happy_path"),
+        _load_fixture("a35_happy_path"),  # A35 analogy pass
         _load_fixture("a4_happy_path"),
         _load_fixture("a5_happy_path"),
         _load_fixture("a6_happy_path"),
@@ -236,7 +242,7 @@ async def test_skips_completed_agents_on_resume(tmp_path, monkeypatch):
     await runner.run(state)
 
     # A1 was completed and must NOT be re-run
-    assert llm.call.call_count == 6  # A2-A6 + humanise
+    assert llm.call.call_count == 7  # A2, A3, A35, A4, A5, A6, humanise
 
 
 # ---------------------------------------------------------------------------
@@ -365,7 +371,7 @@ async def test_audit_json_contains_token_usage(tmp_path, monkeypatch):
     assert len(audits) >= 1
     audit = json.loads(audits[0].read_text())
     assert "total_tokens" in audit
-    assert audit["total_tokens"] == 600
+    assert audit["total_tokens"] == 700
     assert "agents" in audit
     for aid in ["A1", "A2", "A3", "A4", "A5", "A6"]:
         assert aid in audit["agents"]

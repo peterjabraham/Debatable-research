@@ -71,6 +71,7 @@ async def test_cp01_pipeline_completes_with_fallback_on_no_sources(tmp_path, mon
         _fx("a1_happy_path"),   # A1 fallback re-prompt
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -92,6 +93,7 @@ async def test_cp01_fallback_prompt_used_when_no_sources(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -120,6 +122,7 @@ async def test_cp02_a2_reprompts_on_source_count_mismatch(tmp_path, monkeypatch)
         _fx("a2_shallow_claims"),  # 2 blocks but A1 has 6 sources → mismatch
         _fx("a2_happy_path"),      # re-prompt → correct 6 blocks
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),     # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -161,6 +164,7 @@ async def test_cp03_shallow_claims_warning_in_a2_record(tmp_path, monkeypatch):
     llm = _llm(
         _A2_SHALLOW_6BLOCKS,
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -186,6 +190,7 @@ async def test_cp03_shallow_claims_propagates_to_a5_prompt(tmp_path, monkeypatch
     llm = _llm(
         _A2_SHALLOW_6BLOCKS,
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -249,6 +254,7 @@ async def test_cp05_a3_reprompts_once_on_conflation(tmp_path, monkeypatch):
         _fx("a2_happy_path"),
         _fx("a3_conflation"),   # first A3 call: conflation detected
         _fx("a3_happy_path"),   # re-prompt: clean output
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -269,6 +275,7 @@ async def test_cp05_conflation_reprompt_not_triggered_on_clean_output(tmp_path, 
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),   # clean first time — no re-prompt
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_happy_path"),
@@ -277,8 +284,8 @@ async def test_cp05_conflation_reprompt_not_triggered_on_clean_output(tmp_path, 
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
     assert result.pipeline_status == PipelineStatus.COMPLETED
-    # 7 calls total: A1-A6 + humanise (no A3 re-prompt)
-    assert llm.call.call_count == 7
+    # 8 calls total: A1, A2, A3, A35, A4, A5, A6, humanise (no A3 re-prompt)
+    assert llm.call.call_count == 8
 
 
 # ---------------------------------------------------------------------------
@@ -324,7 +331,10 @@ async def test_cp06_a4_caps_at_3_positions_when_5_present(tmp_path, monkeypatch)
     state.agents["A3"].status = AgentStatus.COMPLETED
     state.agents["A3"].output = a3_5pos
     state.agents["A3"].token_usage = _tok()
-    state.total_tokens = 300
+    # A35 sits between A3 and A4 — pre-complete so runner skips it
+    state.agents["A35"].status = AgentStatus.COMPLETED
+    state.agents["A35"].token_usage = _tok()
+    state.total_tokens = 400
 
     llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
     runner = PipelineRunner(llm)
@@ -368,7 +378,10 @@ async def test_cp06_truncated_positions_warning_set(tmp_path, monkeypatch):
     state.agents["A3"].status = AgentStatus.COMPLETED
     state.agents["A3"].output = a3_5pos
     state.agents["A3"].token_usage = _tok()
-    state.total_tokens = 300
+    # A35 sits between A3 and A4 — pre-complete so runner skips it
+    state.agents["A35"].status = AgentStatus.COMPLETED
+    state.agents["A35"].token_usage = _tok()
+    state.total_tokens = 400
 
     llm = _llm(a4_3blocks, _fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
     runner = PipelineRunner(llm)
@@ -389,6 +402,7 @@ async def test_cp07_a4_reprompts_once_when_block_lacks_citation(tmp_path, monkey
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),         # A35 analogy pass
         _fx("a4_no_source_citation"),  # fails citation check
         _fx("a4_happy_path"),          # re-prompt → passes
         _fx("a5_happy_path"),
@@ -414,6 +428,7 @@ async def test_cp08_a5_reprompts_once_on_hedge_phrase(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_hedging"),      # first call: hedge detected
         _fx("a5_happy_path"),   # re-prompt: clean verdict
@@ -434,6 +449,7 @@ async def test_cp08_a5_raises_on_second_hedge(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),  # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_hedging"),   # first: hedge
         _fx("a5_hedging"),   # re-prompt: still hedging → raises
@@ -459,6 +475,7 @@ async def test_cp09_a5_reprompts_when_section_missing(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),       # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_missing_sections"),  # missing "## What to avoid"
         _fx("a5_happy_path"),        # re-prompt: all sections present
@@ -483,6 +500,7 @@ async def test_cp10a_a6_expansion_reprompt_when_short(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),       # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_word_count_short"),  # too short
@@ -504,6 +522,7 @@ async def test_cp10a_expansion_reprompt_checked_after(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),       # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_word_count_short"),
@@ -531,6 +550,7 @@ async def test_cp10b_a6_cut_reprompt_when_long(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),      # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_word_count_long"),  # too long
@@ -551,6 +571,7 @@ async def test_cp10b_cut_reprompt_checked_after(tmp_path, monkeypatch):
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),      # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_word_count_long"),
@@ -577,6 +598,7 @@ async def test_cp11_a6_concession_reprompt_returns_complete_post(tmp_path, monke
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),     # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_no_concession"),   # no "concession" keyword
@@ -598,6 +620,7 @@ async def test_cp11_concession_reprompt_demands_complete_output(tmp_path, monkey
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),     # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_no_concession"),
@@ -606,8 +629,8 @@ async def test_cp11_concession_reprompt_demands_complete_output(tmp_path, monkey
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
-    # The concession reprompt is the 7th LLM call (index 6)
-    concession_reprompt = llm.call.call_args_list[6][0][1]
+    # The concession reprompt is the 8th LLM call (index 7, after A35 at index 3)
+    concession_reprompt = llm.call.call_args_list[7][0][1]
     assert "complete" in concession_reprompt.lower()
 
 
@@ -624,6 +647,7 @@ async def test_cp12_a6_citation_reprompt_lists_missing_sources(tmp_path, monkeyp
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),   # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_no_citations"),  # < 3 source citations
@@ -644,6 +668,7 @@ async def test_cp12_citation_reprompt_contains_missing_source_names(tmp_path, mo
         _fx("a1_happy_path"),
         _fx("a2_happy_path"),
         _fx("a3_happy_path"),
+        _fx("a35_happy_path"),   # A35 analogy pass
         _fx("a4_happy_path"),
         _fx("a5_happy_path"),
         _fx("a6_no_citations"),
@@ -652,9 +677,8 @@ async def test_cp12_citation_reprompt_contains_missing_source_names(tmp_path, mo
     )
     runner = PipelineRunner(llm)
     result = await runner.run(_state())
-    # The citation re-prompt is the 7th LLM call (index 6); final input is
-    # the humanise prompt, so check call args directly.
-    citation_reprompt = llm.call.call_args_list[6][0][1]
+    # The citation re-prompt is the 8th LLM call (index 7, after A35 at index 3)
+    citation_reprompt = llm.call.call_args_list[7][0][1]
     assert "weave" in citation_reprompt.lower()
 
 
@@ -845,6 +869,9 @@ async def test_cp17_context_near_limit_warning_emitted(tmp_path, monkeypatch):
         state.agents[aid].status = AgentStatus.COMPLETED
         state.agents[aid].output = _fx(fname)
         state.agents[aid].token_usage = _tok(50)
+    # A35 sits between A3 and A4 — pre-complete so runner skips it
+    state.agents["A35"].status = AgentStatus.COMPLETED
+    state.agents["A35"].token_usage = _tok(50)
     state.total_tokens = 170  # > 160 threshold
 
     llm = _llm(_fx("a5_happy_path"), _fx("a6_happy_path"), _fx("a6_happy_path"))
@@ -872,6 +899,9 @@ async def test_cp17_context_limit_warning_logged(tmp_path, monkeypatch, caplog):
         state.agents[aid].status = AgentStatus.COMPLETED
         state.agents[aid].output = _fx(fname)
         state.agents[aid].token_usage = _tok(50)
+    # A35 sits between A3 and A4 — pre-complete so runner skips it
+    state.agents["A35"].status = AgentStatus.COMPLETED
+    state.agents["A35"].token_usage = _tok(50)
     state.total_tokens = 170
 
     import logging

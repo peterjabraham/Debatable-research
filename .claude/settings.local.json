@@ -25,7 +25,19 @@
       "Bash(git init:*)",
       "Bash(git remote:*)",
       "Bash(git branch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(python main.py dry-run --topic \"Does remote work hurt career progression?\" --audience \"knowledge workers and managers\" --tone \"evidence-based and direct\")",
+      "Bash(python main.py run --topic 'Does remote work hurt career progression?' --audience 'knowledge workers and managers' --tone 'evidence-based and direct' --words 700)",
+      "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; key=os.getenv\\('ANTHROPIC_API_KEY',''\\); print\\('KEY SET:', bool\\(key\\), 'LEN:', len\\(key\\)\\)\")",
+      "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(override=True\\); import os; key=os.getenv\\('ANTHROPIC_API_KEY','MISSING'\\); print\\(repr\\(key[:20]\\)\\)\")",
+      "Bash(env)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/unit/agents/test_a1.py tests/unit/agents/test_a2.py -q)",
+      "Bash(python -m pytest tests/unit/agents/test_a3.py -q)",
+      "Bash(python main.py resume eaf9dcab-8ed3-4791-b165-927940e6b16a)"
     ]
   }
 }

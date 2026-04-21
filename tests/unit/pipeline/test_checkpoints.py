@@ -125,6 +125,7 @@ def test_resume_point_none_when_all_completed():
         "A1": AgentStatus.COMPLETED,
         "A2": AgentStatus.COMPLETED,
         "A3": AgentStatus.COMPLETED,
+        "A35": AgentStatus.COMPLETED,
         "A4": AgentStatus.COMPLETED,
         "A5": AgentStatus.COMPLETED,
         "A6": AgentStatus.COMPLETED,
