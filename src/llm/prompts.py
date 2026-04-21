@@ -68,6 +68,7 @@ def build_a35_prompt(state: PipelineState, contested_positions: list[str]) -> st
         f"{i + 1}. {pos}" for i, pos in enumerate(contested_positions)
     )
     return f"""You are an expert in structural analogy and cross-domain pattern matching.
+Write in UK English spelling throughout (colour, organise, recognise, behaviour, analyse, etc.).
 
 TOPIC (pillar): {state.topic}
 
@@ -177,6 +178,7 @@ def a5_prompt(state: PipelineState) -> str:
         )
     return (
         f"{caveat}"
+        f"Write in UK English spelling throughout (colour, organise, recognise, etc.).\n\n"
         f"Based on the steelman arguments and source list below, deliver a verdict.\n\n"
         f"Your output must contain exactly these five sections:\n\n"
         f"## Verdict\n"
@@ -203,6 +205,8 @@ def a6_prompt(state: PipelineState) -> str:
     hook_block = _format_hook_analogy_for_a6(state)
     return (
         f"Write a blog post based on the verdict and research below.\n\n"
+        f"Write in UK English spelling throughout (colour, organise, recognise, "
+        f"behaviour, analyse, etc. — not American spellings).\n\n"
         f"Target audience: {state.audience}\n"
         f"Tone: {state.tone}\n"
         f"Target word count: {state.target_word_count}{angle}\n\n"

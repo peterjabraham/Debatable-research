@@ -252,6 +252,8 @@ class A6BlogWriter(BaseAgent):
             "experienced practitioner, not an AI. Output the COMPLETE rewritten "
             "post and nothing else.\n\n"
             "Rules:\n"
+            "- Write in UK English spelling throughout (colour, organise, "
+            "recognise, behaviour, analyse, etc.)\n"
             "- Inject first-person perspective where natural "
             '("We see this during audits", "Most teams hit this wall")\n'
             "- Vary sentence length: mix short punchy sentences with longer "
